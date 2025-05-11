@@ -1,0 +1,7 @@
+.background-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: rgba(51, 158, 245, 0.6);
+  }

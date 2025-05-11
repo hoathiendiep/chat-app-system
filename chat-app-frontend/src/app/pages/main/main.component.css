@@ -1,0 +1,109 @@
+.main {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.main-container {
+  width: 80%;
+  max-width: 100%;
+  height: calc(100vh - 40px);
+  background: #fff;
+  box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.5), 0 2px 5px 0 rgba(0, 0, 0, 0.6);
+}
+
+.left-bar {
+  background: rgba(78, 51, 245, 0.6);
+}
+
+.scrollbar-custom::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+.scrollbar-custom::-webkit-scrollbar-thumb {
+  background-color: rgba(100, 100, 100, 0.3);
+  border-radius: 9999px;
+}
+
+.chat {
+  display: flex;
+  align-items: center;
+  /* Align chat content at the top */
+  margin-bottom: 1rem;
+}
+
+.chat-start {
+  justify-content: flex-start;
+  /* Align items to the left for sender's message */
+}
+
+.chat-end {
+  justify-content: flex-end;
+  /* Align items to the right for recipient's message */
+}
+
+
+.chat-header {
+  font-size: 0.85rem;
+  /* Adjust header size */
+  color: #555555;
+  /* Gray header text */
+}
+
+.chat-bubble {
+  background-color: #e5e5e5;
+  /* Light gray bubble background */
+  padding: 0.75rem 1rem;
+  /* Padding inside bubble */
+  border-radius: 12px;
+  /* Rounded corners */
+  position: relative;
+  /* Add space between chat bubbles */
+}
+
+.chat-bubble:after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  /* Position arrow at the bottom */
+  left: -8px;
+  /* Adjust arrow for start bubbles */
+  width: 0;
+  height: 0;
+  border-width: 8px;
+  border-style: solid;
+  border-color: #e5e5e5 transparent transparent transparent;
+}
+
+.chat-end .chat-bubble:after {
+  left: auto;
+  right: -8px;
+  /* Adjust arrow for end bubbles */
+  /* border-color: transparent transparent transparent #e5e5e5; */
+  content: "";
+  position: absolute;
+  bottom: 0;
+  /* Position arrow at the bottom */
+  width: 0;
+  height: 0;
+  border-width: 8px;
+  border-style: solid;
+  border-color: #e5e5e5 transparent transparent transparent;
+}
+
+.chat-footer {
+  font-size: 0.75rem;
+  color: #a0a0a0;
+  /* Lighter gray for footer text */
+  margin-top: 0.5rem;
+  /* Space above footer */
+}
+.file-link {
+  cursor: pointer;
+  color: blue;
+  text-decoration: underline;
+}
+.file-link:hover {
+  text-decoration: none;
+}
