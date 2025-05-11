@@ -1,0 +1,57 @@
+server:
+  servlet:
+    context-path: /chat-app-api/rs/v1
+  port: 8081
+spring:
+  profiles:
+    active: local
+  mvc:
+    pathmatch:
+      matching-strategy: ANT_PATH_MATCHER
+  datasource:
+    url: ${DATASOURCE_URL}?currentSchema=chatapp
+    username: ${DATASOURCE_USERNAME}
+    password: ${DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      minimum-idle: 2
+      maximum-pool-size: 10
+      connection-timeout: 30000  # 30 seconds
+      idle-timeout: 600000  # 10 minutes
+      max-lifetime: 1800000  # 30 minutes
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  flyway:
+    enabled: false
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8080/realms/chatapp-realm
+  servlet:
+    multipart:
+      max-file-size: 50MB
+  cloud:
+    azure:
+      storage:
+        blob:
+          connection-string: ${AZURE_STORAGE_CONNECTION_STRING}
+logging:
+  level:
+    org:
+      hibernate:
+        SQL: DEBUG
+        type: TRACE
+      springframework:
+        jdbc:
+          core: ERROR
+    com:
+      zaxxer:
+        hikari:
+          HikariConfig: ERROR
+  pattern:
+    console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){blue} %clr(${LOG_LEVEL_PATTERN:%5p}) %clr(${PID:- }){magenta} %clr(---) traceId: %X{requestId} %clr(---){faint} %clr([%t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint}%4line%clr(:){faint} %m%n"
+
+
