@@ -3,8 +3,8 @@ server:
     context-path: /chat-app-api/rs/v1
   port: 8081
 spring:
-  profiles:
-    active: local
+  main:
+    allow-bean-definition-overriding: true
   mvc:
     pathmatch:
       matching-strategy: ANT_PATH_MATCHER
@@ -38,7 +38,8 @@ spring:
       storage:
         blob:
           connection-string: ${AZURE_STORAGE_CONNECTION_STRING}
-logging:
+application:
+  yaml:logging:
   level:
     org:
       hibernate:
