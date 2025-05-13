@@ -4,7 +4,7 @@ server:
   port: 8081
 spring:
   profiles:
-    active: local
+    active: ${ENV_TYPE}
   mvc:
     pathmatch:
       matching-strategy: ANT_PATH_MATCHER

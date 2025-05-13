@@ -38,8 +38,7 @@ spring:
       storage:
         blob:
           connection-string: ${AZURE_STORAGE_CONNECTION_STRING}
-application:
-  yaml:logging:
+logging:
   level:
     org:
       hibernate:
@@ -48,6 +47,8 @@ application:
       springframework:
         jdbc:
           core: ERROR
+        security:
+          oauth2: DEBUG
     com:
       zaxxer:
         hikari:

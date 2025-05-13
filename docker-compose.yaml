@@ -14,7 +14,7 @@ services:
     networks:
       - chat-app-net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d chat-app-system"]
+      test: ["CMD-SHELL", "pg_isready -U ${DATASOURCE_USERNAME} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -39,11 +39,6 @@ services:
     depends_on:
       postgres-db:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
   azurite:
     image: mcr.microsoft.com/azure-storage/azurite
     container_name: azurite
@@ -58,6 +53,7 @@ services:
       - azurite-data:/data
     restart: unless-stopped
   chat-app-backend:
+    container_name: chat-app-backend
     build:
       context: ./chat-app-backend
       dockerfile: Dockerfile
