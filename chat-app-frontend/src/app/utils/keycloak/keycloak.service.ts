@@ -2,20 +2,21 @@ import { Injectable } from '@angular/core';
 import Keycloak from 'keycloak-js'
 import { UserService } from '../../services/services';
 import { environment } from '../../environments/environment';
+import { ConfigService } from '../../services/config.service';
 @Injectable({
   providedIn: 'root'
 })
 export class KeycloakService {
   private _keycloak: Keycloak | undefined;
 
-  constructor() { }
+  constructor(private configService : ConfigService) { }
 
   get keycloak() {
     if (!this._keycloak) {
       this._keycloak = new Keycloak({
-        url: environment.keycloakConfig.auth.url,
-        realm: environment.keycloakConfig.auth.realm,
-        clientId: environment.keycloakConfig.auth.clientId
+        url: this.configService.readConfig().KEYCLOAK_URI,
+        realm: this.configService.readConfig().KEYCLOAK_REALM,
+        clientId: this.configService.readConfig().KEYCLOAK_CLIENT_ID
       });
     }
     return this._keycloak;
@@ -53,7 +54,7 @@ export class KeycloakService {
     //   user_id: this.userId,
     //   is_online: false,
     // }).subscribe(() => {
-      this.keycloak.logout({ redirectUri: 'http://localhost:4200' });
+      this.keycloak.logout({ redirectUri: this.configService.readConfig().CALLBACK_URL });
     // });
   }
   accountManagement() {

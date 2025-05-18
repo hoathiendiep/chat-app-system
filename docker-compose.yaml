@@ -65,6 +65,7 @@ services:
       DATASOURCE_PASSWORD: ${DATASOURCE_PASSWORD}
       AZURE_STORAGE_CONNECTION_STRING: ${AZURE_STORAGE_CONNECTION_STRING}
       KEYCLOAK_ISSUER_URI: ${KEYCLOAK_ISSUER_URI}
+      KEYCLOAK_JWKS_URI: ${KEYCLOAK_JWKS_URI}
     ports:
       - "8081:8081"
     volumes:
@@ -74,6 +75,20 @@ services:
     depends_on:
       postgres-db:
         condition: service_healthy
+  chat-app-frontend:
+    container_name: chat-app-frontend
+    build:
+      context: ./chat-app-frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT}
+    ports:
+      - "4200:80"
+    volumes:
+      - ./logs:/logs
+    networks:
+      - chat-app-net
 volumes:
   pgdata:
   keycloak_data:

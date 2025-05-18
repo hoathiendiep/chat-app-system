@@ -4,6 +4,7 @@
 
 import { Injectable } from '@angular/core';
 import { environment } from '../environments/environment';
+import { ConfigService } from './config.service';
 
 /**
  * Global configuration
@@ -12,7 +13,12 @@ import { environment } from '../environments/environment';
   providedIn: 'root',
 })
 export class ApiConfiguration {
-  rootUrl: string = environment.apiConfig.base;
+  public rootUrl: string;
+
+  constructor(private configService: ConfigService) {
+    // Ensure safe access to configuration
+    this.rootUrl = this.configService.readConfig()?.API_URL  || '';
+  }
 }
 
 /**

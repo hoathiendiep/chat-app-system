@@ -13,8 +13,8 @@ import { InfiniteScrollDirective } from 'ngx-infinite-scroll';
 import { DownloadFile$Params } from '../../services/fn/message/download-file';
 import { HttpResponse } from '@angular/common/http';
 import { environment } from '../../environments/environment';
+import { ConfigService } from '../../services/config.service';
 
-const API_URL = environment.apiConfig.base;
 @Component({
   selector: 'app-main',
   imports: [CommonModule, PickerComponent, FormsModule, InfiniteScrollDirective],
@@ -40,7 +40,7 @@ export class MainComponent {
     private chatService: ChatService,
     private messageService: MessageService,
     private keycloakService: KeycloakService,
-    private userService: UserService) {
+    private userService: UserService, private configService : ConfigService) {
 
   }
   toggleLoadingUser = () => this.isLoadingUser = !this.isLoadingUser;
@@ -139,7 +139,7 @@ export class MainComponent {
 
   private initWebSocket() {
     if (this.keycloakService.keycloak.tokenParsed?.sub) {
-      let ws = new SockJS(`${API_URL}/ws?token=${this.keycloakService.keycloak.token}`);
+      let ws = new SockJS(`${this.configService.readConfig().API_URL}/ws?token=${this.keycloakService.keycloak.token}`);
       this.socketClient = Stomp.over(ws);
       const subUrl = `/user/${this.keycloakService.keycloak.tokenParsed?.sub}/chat`;
       this.socketClient.connect({ 'Authorization': 'Bearer ' + this.keycloakService.keycloak.token },
