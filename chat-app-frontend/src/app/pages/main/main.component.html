@@ -10,26 +10,15 @@
         <div class="w-full md:w-2/5 lg:w-1/4 h-full flex flex-col bg-gray-100 shadow p-3">
             <h2 class="text-lg font-bold text-gray-700 mb-2">Chats</h2>
             <div class="relative mb-4">
-                <!-- <i class="fa fa-search text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2"></i> -->
-                <!-- <input type="text" placeholder="Search chats..."
-                    class="w-full pl-10 pr-4 py-2 bg-gray-200 rounded-md" /> -->
+                <i class="fa fa-search text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2"></i>
+                <input type="text" placeholder="Search chats..." [(ngModel)]="searchText"
+                    class="w-full pl-10 pr-4 py-2 bg-gray-200 rounded-md" />
             </div>
-            <!-- Scrollable user icon row -->
-            <!-- This fills its parent -->
             <div class="mt-4 w-full overflow-x-auto scrollbar-custom h-24" infiniteScroll [infiniteScrollDistance]="2"
                 [infiniteScrollThrottle]="50" (scrolled)="onScrollUser()" [scrollWindow]="false">
-                <!-- This inner container only allows space for 2 full items -->
                 <div class="w-max min-w-[176px] max-w-[176px]">
                     <div class="flex space-x-1 px-1">
-                        <!-- <div *ngFor="let _ of [].constructor(10)"
-                    class="flex flex-col items-center text-center w-20 flex-shrink-0">
-                <div class="relative bg-white rounded-full h-12 w-12 flex items-center justify-center shadow">
-                    <i class="fa-solid fa-user text-gray-700 text-xl cursor-pointer"></i>
-                    <span class="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-white"></span>
-                </div>
-                <p class="text-sm text-gray-700 mt-1 truncate w-full whitespace-nowrap">Alice</p>
-                </div> -->
-                        <div *ngFor="let user of users; "
+                        <div *ngFor="let user of filteredUsers(); "
                             class="flex flex-col items-center text-center w-20 h-max-full flex-shrink-0">
                             <div
                                 class="relative bg-white rounded-full h-12 w-12 flex items-center justify-center shadow">
@@ -50,27 +39,6 @@
 
             <h2 class="text-lg font-bold text-gray-700 mt-4 mb-2">Recent</h2>
             <div class="mt-4 flex-grow h-5/7 overflow-y-auto scrollbar-custom">
-                <!-- <div *ngFor="let _ of [].constructor(10)" class="flex items-center p-2 hover:bg-gray-200 rounded-md">
-                    <div class="w-12 h-12 relative bg-white rounded-full shadow flex items-center justify-center mr-3">
-                      <i class="fa-solid fa-user text-xl text-gray-700"></i>
-                      <span
-                        class="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 bg-green-500 border-white" >
-                      </span>
-                    </div>
-                    <div class="flex-grow">
-                      <div class="relative mb-1">
-                        <h3 class="font-semibold text-sm truncate">Bob Newbie</h3>
-                        <span class="absolute h-6 w-6 rounded-full bg-red-500 flex items-center justify-center text-white text-sm top-0 right-0">
-                            3
-                          </span>
-                          
-                      </div>
-                      <div class="flex justify-between text-xs text-gray-600">
-                        <p class="truncate w-3/4">haha hihih</p>
-                        <p>10:06</p>
-                      </div>
-                    </div>
-                  </div> -->
                 <div *ngFor="let chat of chats;" class="flex items-center p-1 hover:bg-gray-200 rounded-md">
                     <div class="w-12 h-12 flex-shrink-0 relative bg-white rounded-full shadow flex items-center justify-center mr-2"
                         style="cursor:pointer" (click)="chatSelected(chat)">
@@ -106,20 +74,28 @@
                 <div class="col-span-1">
                     <div class="relative bg-white rounded-full h-15 w-15 flex items-center justify-center shadow  mr-3">
                         <i class="fa-solid fa-user text-gray-700 text-xl"></i>
-                        <!-- <span *ngIf="!selectedChat"
-                            class="absolute bottom-0 right-0 h-4 w-4 rounded-full bg-green-500 border-2 border-white"></span> -->
-                        <span *ngIf="selectedChat && selectedChat.id"
+                        <span *ngIf="selectedChat && selectedChat.id else currentProfileStatus"
                             class="absolute bottom-0 right-0 h-4 w-4 rounded-full border-2 border-white"
                             [ngClass]="selectedChat.is_recipient_online ? 'bg-green-500' : 'bg-red-500'"></span>
+                        <ng-template #currentProfileStatus>
+                            <span class="absolute bottom-0 right-0 h-4 w-4 rounded-full border-2 border-white"
+                                [ngClass]=" 'bg-green-500' "></span>
+                        </ng-template>
                     </div>
                 </div>
-                <div *ngIf="selectedChat && selectedChat.id" class="col-span-5">
+                <div *ngIf="selectedChat && selectedChat.id else currentProfile" class="col-span-5">
                     <h2 class="text-left text-gray-700 text-lg font-bold ml-2 ">{{selectedChat.chat_name}}</h2>
                 </div>
+                <ng-template #currentProfile>
+                    <div class="col-span-5">
+                        <h2 class="text-left text-gray-700 text-lg font-bold ml-2 ">{{currUserName}}</h2>
+                    </div>
+                </ng-template>
             </div>
 
 
-            <div class="w-full h-7/8 bg-gray-100 shadow flex flex-col ">
+            <div *ngIf="selectedChat && selectedChat.id else profileChat"
+                class="w-full h-7/8 bg-gray-100 shadow flex flex-col ">
                 <div class="h-6/7 overflow-y-auto scrollbar-custom">
                     <ng-container *ngFor="let msg of chatMessages.slice().reverse(); let i = index">
                         <div *ngIf="msg.sender_id !== currUserId; else senderMessage"
@@ -144,15 +120,15 @@
                                     <div class="chat-bubble">
                                         <a (click)="downloadFileData(msg.attachment_file, msg.file_name)" download>
                                             <ng-container *ngIf="isImageFile(msg.file_name); else showFileName">
-                                                <img width="200" class="cursor-pointer" [src]="'data:image/jpg;base64,' + msg.attachment_file">
+                                                <img width="200" class="cursor-pointer"
+                                                    [src]="'data:image/jpg;base64,' + msg.attachment_file">
                                             </ng-container>
                                             <ng-template #showFileName>
-                                                    <span class="file-link">{{ msg.file_name }}</span>
-                                             </ng-template>
+                                                <span class="file-link">{{ msg.file_name }}</span>
+                                            </ng-template>
                                         </a>
                                     </div>
                                 </ng-template>
-                                <!-- <div class="chat-footer opacity-50">{{ msg.type === 0 ? 'Delivered' : 'Seen' }}</div> -->
                             </div>
                         </div>
 
@@ -169,11 +145,12 @@
                                         <div class="chat-bubble">
                                             <a (click)="downloadFileData(msg.attachment_file, msg.file_name)" download>
                                                 <ng-container *ngIf="isImageFile(msg.file_name); else showFileName">
-                                                    <img width="200" class="cursor-pointer" [src]="'data:image/jpg;base64,' + msg.attachment_file">
+                                                    <img width="200" class="cursor-pointer"
+                                                        [src]="'data:image/jpg;base64,' + msg.attachment_file">
                                                 </ng-container>
                                                 <ng-template #showFileName>
-                                                        <span class="file-link">{{ msg.file_name }}</span>
-                                                 </ng-template>
+                                                    <span class="file-link">{{ msg.file_name }}</span>
+                                                </ng-template>
                                             </a>
                                         </div>
                                     </ng-template>
@@ -184,8 +161,6 @@
                             </div>
                         </ng-template>
                     </ng-container>
-
-
                 </div>
                 <div class="h-1/7 flex items-center justify-center">
 
@@ -221,6 +196,21 @@
                     </div>
                 </div>
             </div>
+            <ng-template #profileChat>
+                <div style="left:0;right: 0;margin-left: auto;margin-right: auto;">
+                    <div class="container-cat">
+                        <div class="cat">
+                            <div class="ear"></div>
+                            <div class="eye"></div>
+                            <div class="mouth"></div>
+                            <div class="nose"></div>
+                            <div class="tail"></div>
+                            <div class="body"></div>
+                            <div class="bubble"></div>
+                        </div>
+                    </div>
+                </div>
+            </ng-template>
         </div>
     </div>
 </div>

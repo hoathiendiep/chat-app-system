@@ -35,6 +35,7 @@ export class MainComponent {
   currentPageUser = 0;
   itemsPerPageUser = 4;
   private notificationSubscription: any;
+  searchText: string = '';
 
   constructor(
     private chatService: ChatService,
@@ -69,7 +70,15 @@ export class MainComponent {
     this.getAllChatMessages(chatResponse.id as string);
     this.selectedChat.unread_count = 0;
   }
-
+  filteredUsers() {
+    if (!this.searchText) {
+      return this.users;
+    }
+    const search = this.searchText.toLowerCase();
+    return this.users.filter(user =>
+      (user.firstName + ' ' + user.lastName).toLowerCase().includes(search)
+    );
+  }
   private getAllChatMessages(chatId: string) {
     this.messageService.getAllMessages({
       'chat_id': chatId
