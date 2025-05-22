@@ -1,5 +1,11 @@
 <div class="main  h-screen w-full">
+    <div *ngIf="hasError" class="bg-orange-100 border-l-4 border-orange-500 text-orange-700 p-4"
+        style="position: absolute; z-index: 9999; right:0;top: 0;" role="alert">
+        <p class="font-bold" >Error</p>
+        <p>{{errorMessage}}</p>
+    </div>
     <div class="main-container flex flex-col md:flex-row h-full">
+        <div *ngIf="isLoading" class="donut"></div>
         <div class="w-full md:w-16 h-16 md:h-full left-bar shadow md:flex flex-col justify-between items-center py-4">
             <i class="fa-solid fa-message text-xl cursor-pointer"></i>
             <div class="hidden md:flex flex-col items-center gap-4">
@@ -14,8 +20,7 @@
                 <input type="text" placeholder="Search chats..." [(ngModel)]="searchText"
                     class="w-full pl-10 pr-4 py-2 bg-gray-200 rounded-md" />
             </div>
-            <div class="mt-4 w-full overflow-x-auto scrollbar-custom h-24" infiniteScroll [infiniteScrollDistance]="2"
-                [infiniteScrollThrottle]="50" (scrolled)="onScrollUser()" [scrollWindow]="false">
+            <div class="mt-4 w-full overflow-x-auto scrollbar-custom h-24">
                 <div class="w-max min-w-[176px] max-w-[176px]">
                     <div class="flex space-x-1 px-1">
                         <div *ngFor="let user of filteredUsers(); "
@@ -96,7 +101,9 @@
 
             <div *ngIf="selectedChat && selectedChat.id else profileChat"
                 class="w-full h-7/8 bg-gray-100 shadow flex flex-col ">
-                <div class="h-6/7 overflow-y-auto scrollbar-custom">
+                <div class="h-6/7 overflow-y-auto scrollbar-custom" infiniteScroll [infiniteScrollDistance]="1"
+                    [infiniteScrollThrottle]="500" (scrolledUp)="onScrollChat(selectedChat.id)" [scrollWindow]="false"
+                    #scrollableDiv>
                     <ng-container *ngFor="let msg of chatMessages.slice().reverse(); let i = index">
                         <div *ngIf="msg.sender_id !== currUserId; else senderMessage"
                             class="chat chat-start items-center pl-3 pt-2">

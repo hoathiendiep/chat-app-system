@@ -1,7 +1,5 @@
 import { Injectable } from '@angular/core';
 import Keycloak from 'keycloak-js'
-import { UserService } from '../../services/services';
-import { environment } from '../../environments/environment';
 import { ConfigService } from '../../services/config.service';
 @Injectable({
   providedIn: 'root'
@@ -9,7 +7,7 @@ import { ConfigService } from '../../services/config.service';
 export class KeycloakService {
   private _keycloak: Keycloak | undefined;
 
-  constructor(private configService : ConfigService) { }
+  constructor(private configService: ConfigService) { }
 
   get keycloak() {
     if (!this._keycloak) {
@@ -27,9 +25,9 @@ export class KeycloakService {
     });
   }
 
-  
+
   async login() {
-    await this.keycloak.login() 
+    await this.keycloak.login()
 
   }
 
@@ -50,12 +48,7 @@ export class KeycloakService {
   }
 
   logout() {
-    // this.userService.setUserStatus({
-    //   user_id: this.userId,
-    //   is_online: false,
-    // }).subscribe(() => {
-      this.keycloak.logout({ redirectUri: this.configService.readConfig().CALLBACK_URL });
-    // });
+    this.keycloak.logout({ redirectUri: this.configService.readConfig().CALLBACK_URL });
   }
   accountManagement() {
     return this.keycloak.accountManagement();

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, NgModule } from '@angular/core';
+import { Component, ElementRef, ViewChild } from '@angular/core';
 import { EmojiData } from '@ctrl/ngx-emoji-mart/ngx-emoji';
 import { PickerComponent } from '@ctrl/ngx-emoji-mart';
 import { FormsModule } from '@angular/forms';
@@ -12,7 +12,6 @@ import { ChatPreviewResponse, MessageRequest, MessageResponse, UserResponse } fr
 import { InfiniteScrollDirective } from 'ngx-infinite-scroll';
 import { DownloadFile$Params } from '../../services/fn/message/download-file';
 import { HttpResponse } from '@angular/common/http';
-import { environment } from '../../environments/environment';
 import { ConfigService } from '../../services/config.service';
 
 @Component({
@@ -22,7 +21,9 @@ import { ConfigService } from '../../services/config.service';
   styleUrl: './main.component.css'
 })
 export class MainComponent {
+  @ViewChild('scrollableDiv') scrollableDiv!: ElementRef<HTMLDivElement>;
   messageContent: string = '';
+  isLoading = true
   showEmojis = false;
   socketClient: any = null;
   selectedChat: ChatPreviewResponse = {};
@@ -32,16 +33,18 @@ export class MainComponent {
   currUserName: string = "";
   currUserId: string = "";
   isLoadingUser = false;
-  currentPageUser = 0;
-  itemsPerPageUser = 4;
+  currentPage = 0;
+  itemsPerPage = 10;
   private notificationSubscription: any;
   searchText: string = '';
+  hasError = false
+  errorMessage = ''
 
   constructor(
     private chatService: ChatService,
     private messageService: MessageService,
     private keycloakService: KeycloakService,
-    private userService: UserService, private configService : ConfigService) {
+    private userService: UserService, private configService: ConfigService) {
 
   }
   toggleLoadingUser = () => this.isLoadingUser = !this.isLoadingUser;
@@ -52,23 +55,43 @@ export class MainComponent {
     this.getAllUsers();
     this.currUserName = this.keycloakService.fullName
     this.currUserId = this.keycloakService.userId
+    this.resetScrollChatProperites();
   }
 
+  private scrollToBottom(): void {
+    if (this.scrollableDiv) {
+      const div = this.scrollableDiv.nativeElement;
+      div.scrollTop = div.scrollHeight;
+    }
+  }
   private getAllUsers() {
+    this.isLoading = true
     this.userService.getAllUsers({
-      pageNumber: this.currentPageUser,
-      // pageSize: this.itemsPerPageUser
+      pageNumber: 0,
     }).subscribe({
       next: (res) => {
+        this.isLoading = false
         this.users = res.data || [];
+      },
+      error: (err) => {
+        this.isLoading = false
+        this.hasError = true
+        this.errorMessage = "Error getting users due to " + err.message
+        setTimeout(() => this.clearError(), 5000);
       }
     })
   }
 
+  clearError(): void {
+    this.errorMessage = '';
+    this.hasError = false
+  }
   chatSelected(chatResponse: ChatPreviewResponse) {
     this.selectedChat = chatResponse;
-    this.getAllChatMessages(chatResponse.id as string);
+    this.resetScrollChatProperites()
+    this.getAllChatMessages(chatResponse.id as string)
     this.selectedChat.unread_count = 0;
+
   }
   filteredUsers() {
     if (!this.searchText) {
@@ -79,43 +102,61 @@ export class MainComponent {
       (user.firstName + ' ' + user.lastName).toLowerCase().includes(search)
     );
   }
-  private getAllChatMessages(chatId: string) {
+  private getAllChatMessages(chatId: string, append = false) {
+    this.isLoading = true
     this.messageService.getAllMessages({
-      'chat_id': chatId
+      'chat_id': chatId,
+      'pageNumber': this.currentPage,
+      'pageSize': this.itemsPerPage
     }).subscribe({
       next: (res) => {
-        this.chatMessages = res.data || [];
-        this.setMessagesToSeen();
-
+        this.isLoading = false
+        const scrollElement = this.scrollableDiv?.nativeElement;
+        const oldScrollHeight = scrollElement?.scrollHeight || 0;
+        const oldScrollTop = scrollElement?.scrollTop || 0;
+        if (append) {
+          this.chatMessages = [...this.chatMessages, ...res.data || []];
+          setTimeout(() => {
+            const newScrollHeight = scrollElement.scrollHeight;
+            const heightDifference = newScrollHeight - oldScrollHeight;
+            scrollElement.scrollTop = oldScrollTop + heightDifference;
+          }, 1);
+        }
+        else {
+          this.chatMessages = res.data || [];
+          this.setMessagesToSeen();
+          setTimeout(() => this.scrollToBottom(), 1);
+        }
+      },
+      error: (err) => {
+        this.isLoading = false
+        this.hasError = true
+        this.errorMessage = "Error getting chat messages due to " + err.message
+        setTimeout(() => this.clearError(), 5000);
       }
     });
   }
 
-  onScrollUser = () => {
-    this.currentPageUser++;
-    this.appendDataUser();
-  }
-
-  appendDataUser = () => {
-    this.toggleLoadingUser();
-    this.userService.getAllUsers({
-      pageNumber: this.currentPageUser,
-      pageSize: this.itemsPerPageUser
-    }).subscribe({
-      next: response => this.users = [...this.users, ...response.data || []],
-      error: err => console.log(err),
-      complete: () => this.toggleLoadingUser()
-    })
+  onScrollChat = (chatId: string) => {
+    this.currentPage++;
+    this.getAllChatMessages(chatId, true);
   }
 
   private getAllChats() {
+    this.isLoading = true
     this.chatService.getChatsByReceiver({
       pageNumber: 0,
-      // pageSize: 10
     })
       .subscribe({
         next: (res) => {
           this.chats = res.data || [];
+          this.isLoading = false
+        },
+        error: (err) => {
+          this.isLoading = false
+          this.hasError = true
+          this.errorMessage = "Error getting chats due to " + err.message
+          setTimeout(() => this.clearError(), 5000);
         }
       });
   }
@@ -198,7 +239,11 @@ export class MainComponent {
           } else {
             this.selectedChat.last_message = notification.content;
           }
+
           this.chatMessages.unshift(message);
+          if (this.isNearBottom()) {
+            setTimeout(() => this.scrollToBottom(), 1);
+          }
           break;
 
         case 0:
@@ -220,7 +265,15 @@ export class MainComponent {
     }
   }
 
+  private isNearBottom(): boolean {
+    const element = this.scrollableDiv?.nativeElement;
+    if (!element) return true;
 
+    const { scrollTop, scrollHeight, clientHeight } = element;
+    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+
+    return distanceFromBottom <= 30;
+  }
   onSelectEmojis(emojiSelected: any) {
     const emoji: EmojiData = emojiSelected.emoji;
     this.messageContent += emoji.native;
@@ -252,6 +305,13 @@ export class MainComponent {
           this.chatMessages.unshift(message);
           this.messageContent = '';
           this.showEmojis = false;
+          setTimeout(() => this.scrollToBottom(), 1);
+        },
+        error: (err) => {
+          this.isLoading = false
+          this.hasError = true
+          this.errorMessage = "Error sending messages due to " + err.message
+          setTimeout(() => this.clearError(), 5000);
         }
       });
     }
@@ -296,8 +356,11 @@ export class MainComponent {
                 this.messageContent = '';
                 this.showEmojis = false;
               },
-              error: (err) =>{
-                alert("Error upload file due to "+err.message)
+              error: (err) => {
+                this.isLoading = false
+                this.hasError = true
+                this.errorMessage = "Error upload file due to " + err.message
+                setTimeout(() => this.clearError(), 5000);
               }
             });
         }
@@ -336,12 +399,20 @@ export class MainComponent {
 
   }
 
+  resetScrollChatProperites() {
+    this.itemsPerPage = 10
+    this.currentPage = 0;
+  }
+
   selectContact(receiver: UserResponse) {
+    this.resetScrollChatProperites()
+    this.isLoading = true
     this.chatService.createChat({
       'sender_id': this.keycloakService.userId as string,
       'receiver_id': receiver.id as string
     }).subscribe({
       next: (res) => {
+        this.isLoading = false
         const chat: ChatPreviewResponse = {
           id: res.data || undefined,
           chat_name: receiver.firstName + ' ' + receiver.lastName,
@@ -355,6 +426,12 @@ export class MainComponent {
         };
         this.selectedChat = chat
         this.getAllChatMessages(res.data!)
+      },
+      error: (err) => {
+        this.isLoading = false
+        this.hasError = true
+        this.errorMessage = "Error select contact due to " + err.message
+        setTimeout(() => this.clearError(), 5000);
       }
     });
 
@@ -396,14 +473,17 @@ export class MainComponent {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = fileName;  
+        a.download = fileName;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
       },
       error: (err) => {
-        alert('Failed to download file: ' + err.message);  
+        this.isLoading = false
+        this.hasError = true
+        this.errorMessage = "Failed to download file: " + err.message
+        setTimeout(() => this.clearError(), 5000);
       }
     });
   }
@@ -422,23 +502,23 @@ export class MainComponent {
       binaryData = new TextEncoder().encode(fileData);
     }
 
- 
+
     const blob = new Blob([binaryData], { type: this.getMimeType(fileName.split('.').pop() || '') });
 
- 
+
     const url = window.URL.createObjectURL(blob);
- 
+
     const a = document.createElement('a');
     a.href = url;
     a.download = fileName || 'attachment';
     document.body.appendChild(a);
     a.click();
- 
+
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
   }
 
- 
+
   private isBase64(str: string): boolean {
     try {
       return btoa(atob(str)) === str;
@@ -446,7 +526,7 @@ export class MainComponent {
       return false;
     }
   }
- 
+
   private base64ToArrayBuffer(base64: string): ArrayBuffer {
     const binaryString = atob(base64);
     const bytes = new Uint8Array(binaryString.length);
@@ -456,12 +536,12 @@ export class MainComponent {
     return bytes.buffer;
   }
 
- 
+
   private getMimeType(extension: string): string {
     const mimeTypes: Record<string, string> = {
       'jpg': 'image/jpeg',
       'jpeg': 'image/jpeg',
-      'png': 'image/png',   
+      'png': 'image/png',
       'gif': 'image/gif',
       'bmp': 'image/bmp',
       'webp': 'image/webp',

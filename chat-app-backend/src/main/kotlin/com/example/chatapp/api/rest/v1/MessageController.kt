@@ -51,7 +51,7 @@ class MessageController(
     @GetMapping("/{chat_id}")
     fun getAllMessages(
         @RequestParam pageNumber: Int = 0,
-        @RequestParam pageSize: Int = Int.MAX_VALUE,
+        @RequestParam pageSize: Int = 10,
         @PathVariable("chat_id") chatId: UUID
     ): ApiResponse<List<MessageResponse>> {
         val result = messageService.findChatMessages(chatId,pageNumber,pageSize)
