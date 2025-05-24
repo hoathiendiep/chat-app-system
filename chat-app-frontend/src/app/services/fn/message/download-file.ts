@@ -8,35 +8,25 @@ import { filter, map } from 'rxjs/operators';
 import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
-import { ApiResponseUnit } from '../../models/api-response-unit';
-import { uploadMedia } from './upload-media';
 
 export interface DownloadFile$Params {
-    message_id: string;
+  message_id: string;
 }
 
-export function downloadFile(
-    http: HttpClient,
-    rootUrl: string,
-    params: DownloadFile$Params,
-    context?: HttpContext
-): Observable<HttpResponse<Blob>> {
-    const rb = new RequestBuilder(rootUrl, downloadFile.PATH, 'get');
-    if (params) {
-        rb.path('message_id', params.message_id, {});
-    }
+export function downloadFile(http: HttpClient, rootUrl: string, params: DownloadFile$Params, context?: HttpContext): Observable<StrictHttpResponse<Blob>> {
+  const rb = new RequestBuilder(rootUrl, downloadFile.PATH, 'get');
+  if (params) {
+    rb.path('message_id', params.message_id, {});
+  }
 
-    return http.request(
-        rb.build({ responseType: 'blob', context })
-    ).pipe(
-        filter((r: any): r is HttpResponse<Blob> => r instanceof HttpResponse),
-        map((r: HttpResponse<Blob>) => {
-            if (!r.body) {
-                throw new Error('No file content returned from server');
-            }
-            return r;  
-        })
-    );
+  return http.request(
+    rb.build({ responseType: 'blob', accept: '*/*', context })
+  ).pipe(
+    filter((r: any): r is StrictHttpResponse<Blob> => r ),
+    map((r: StrictHttpResponse<Blob>) => {
+      return r;
+    })
+  );
 }
 
 downloadFile.PATH = '/messages/download-attachment/{message_id}';

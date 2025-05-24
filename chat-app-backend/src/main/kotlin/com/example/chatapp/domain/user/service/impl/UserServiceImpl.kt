@@ -25,11 +25,10 @@ class UserServiceImpl(
 ) : UserService{
     private val log : org.slf4j.Logger = LoggerFactory.getLogger(UserServiceImpl::class.java)
 
-    override fun findAllUsersExceptSelf(connectedUser: Authentication, page : Int, size: Int): List<UserResponse> {
+    override fun findAllUsersExceptSelf(connectedUser: Authentication): List<UserResponse> {
         try {
             log.info("Start findAllUsersExceptSelf ${UUID.fromString(connectedUser.name)}")
-            val pageable: Pageable = PageRequest.of(page, size, Sort.by("created_date").descending())
-            return userRepository.findAllUsersExceptSelf( UUID.fromString(connectedUser.name) ,pageable)
+            return userRepository.findAllUsersExceptSelf( UUID.fromString(connectedUser.name))
                 .stream()
                 .map(userMapper::toUserResponse)
                 .toList()

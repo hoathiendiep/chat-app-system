@@ -9,19 +9,11 @@ import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
 import { ApiResponseListChatPreviewResponse } from '../../models/api-response-list-chat-preview-response';
+ 
 
-export interface GetChatsByReceiver$Params {
-  pageNumber?: number;
-  pageSize?: number;
-}
-
-export function getChatsByReceiver(http: HttpClient, rootUrl: string, params?: GetChatsByReceiver$Params, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseListChatPreviewResponse>> {
+export function getChatsByReceiver(http: HttpClient, rootUrl: string, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseListChatPreviewResponse>> {
   const rb = new RequestBuilder(rootUrl, getChatsByReceiver.PATH, 'get');
-  if (params) {
-    rb.query('pageNumber', params.pageNumber, {});
-    rb.query('pageSize', params.pageSize, {});
-  }
-
+ 
   return http.request(
     rb.build({ responseType: 'json', accept: '*/*', context })
   ).pipe(

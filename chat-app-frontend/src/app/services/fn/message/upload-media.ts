@@ -8,7 +8,7 @@ import { filter, map } from 'rxjs/operators';
 import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
-import { ApiResponseUnit } from '../../models/api-response-unit';
+import { ApiResponseUuid } from '../../models/api-response-uuid';
 
 export interface UploadMedia$Params {
   chat_id: string;
@@ -18,7 +18,7 @@ export interface UploadMedia$Params {
 }
 }
 
-export function uploadMedia(http: HttpClient, rootUrl: string, params: UploadMedia$Params, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseUnit>> {
+export function uploadMedia(http: HttpClient, rootUrl: string, params: UploadMedia$Params, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseUuid>> {
   const rb = new RequestBuilder(rootUrl, uploadMedia.PATH, 'post');
   if (params) {
     rb.query('chat_id', params.chat_id, {});
@@ -31,7 +31,7 @@ export function uploadMedia(http: HttpClient, rootUrl: string, params: UploadMed
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return r as StrictHttpResponse<ApiResponseUnit>;
+      return r as StrictHttpResponse<ApiResponseUuid>;
     })
   );
 }

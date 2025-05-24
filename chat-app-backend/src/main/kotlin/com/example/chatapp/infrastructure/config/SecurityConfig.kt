@@ -1,6 +1,7 @@
 package com.example.chatapp.infrastructure.config
 
 import com.example.chatapp.infrastructure.security.KeycloakJwtAuthenticationConverter
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpHeaders
@@ -15,7 +16,8 @@ import org.springframework.web.filter.CorsFilter
 @Configuration
 @EnableWebSecurity
 class SecurityConfig {
-
+    @Value("\${frontend.base-url}")
+    private val frontendBaseUrl: String? = null
     @Bean
     @Throws(Exception::class)
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
@@ -54,7 +56,7 @@ class SecurityConfig {
         val source = UrlBasedCorsConfigurationSource()
         val config = CorsConfiguration().apply {
             allowCredentials = true
-            allowedOrigins = listOf("http://localhost:4200")
+            allowedOrigins = listOf(frontendBaseUrl)
             allowedHeaders = listOf(
                 HttpHeaders.ORIGIN,
                 HttpHeaders.CONTENT_TYPE,

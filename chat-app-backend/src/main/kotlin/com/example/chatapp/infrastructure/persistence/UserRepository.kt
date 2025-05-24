@@ -15,7 +15,7 @@ interface UserRepository : JpaRepository<User, UUID> {
     fun findByEmail(@Param("email") userEmail: String?): Optional<User>
 
     @Query("SELECT * FROM users u WHERE u.id != :id", nativeQuery = true)
-    fun findAllUsersExceptSelf(@Param("id") id: UUID, pageable: Pageable): List<User>
+    fun findAllUsersExceptSelf(@Param("id") id: UUID): List<User>
 
 
 //    @Query(value = "UPDATE users SET is_user_online = :status WHERE id = :userId", nativeQuery = true)

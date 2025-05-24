@@ -14,8 +14,6 @@ import { StrictHttpResponse } from '../strict-http-response';
 import { ApiResponseListUserResponse } from '../models/api-response-list-user-response';
 import { getAllUsers } from '../fn/user/get-all-users';
 import { GetAllUsers$Params } from '../fn/user/get-all-users';
-import { setUserStatus, SetUserStatus$Params } from '../fn/user/set-user-status';
-import { ApiResponseUnit } from '../models';
 
 @Injectable({ providedIn: 'root' })
 export class UserService extends BaseService {
@@ -44,27 +42,8 @@ export class UserService extends BaseService {
    */
   getAllUsers(params?: GetAllUsers$Params, context?: HttpContext): Observable<ApiResponseListUserResponse> {
     return this.getAllUsers$Response(params, context).pipe(
-      map((r: StrictHttpResponse<ApiResponseListUserResponse>): ApiResponseListUserResponse =>{
-
-        return r.body})
+      map((r: StrictHttpResponse<ApiResponseListUserResponse>): ApiResponseListUserResponse => r.body)
     );
   }
 
-  setUserStatus$Response(params?: SetUserStatus$Params, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseUnit>> {
-    return setUserStatus(this.http, this.rootUrl, params, context);
-  }
-
-  /**
-   * This method provides access only to the response body.
-   * To access the full response (for headers, for example), `getAllUsers$Response()` instead.
-   *
-   * This method doesn't expect any request body.
-   */
-  setUserStatus(params?: SetUserStatus$Params, context?: HttpContext): Observable<ApiResponseUnit> {
-    return this.setUserStatus$Response(params, context).pipe(
-      map((r: StrictHttpResponse<ApiResponseUnit>): ApiResponseUnit =>{
-
-        return r.body})
-    );
-  }
 }

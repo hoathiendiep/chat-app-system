@@ -120,7 +120,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseUnit"
+                  "$ref": "#/components/schemas/ApiResponseUUID"
                 }
               }
             }
@@ -174,26 +174,6 @@
           "User"
         ],
         "operationId": "getAllUsers",
-        "parameters": [
-          {
-            "name": "offset",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -216,7 +196,7 @@
         "operationId": "getAllMessages",
         "parameters": [
           {
-            "name": "offset",
+            "name": "pageNumber",
             "in": "query",
             "required": false,
             "schema": {
@@ -225,7 +205,7 @@
             }
           },
           {
-            "name": "limit",
+            "name": "pageSize",
             "in": "query",
             "required": false,
             "schema": {
@@ -257,6 +237,38 @@
         }
       }
     },
+    "/messages/download-attachment/{message_id}": {
+      "get": {
+        "tags": [
+          "Message"
+        ],
+        "operationId": "downloadFile",
+        "parameters": [
+          {
+            "name": "message_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "format": "byte"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/chats/chat-preview": {
       "get": {
         "tags": [
@@ -265,7 +277,7 @@
         "operationId": "getChatsByReceiver",
         "parameters": [
           {
-            "name": "offset",
+            "name": "pageNumber",
             "in": "query",
             "required": false,
             "schema": {
@@ -274,7 +286,7 @@
             }
           },
           {
-            "name": "limit",
+            "name": "pageSize",
             "in": "query",
             "required": false,
             "schema": {
@@ -481,6 +493,9 @@
           "attachment_file": {
             "type": "string",
             "format": "byte"
+          },
+          "file_name": {
+            "type": "string"
           }
         }
       },
@@ -531,7 +546,8 @@
             "type": "string"
           },
           "last_message_type": {
-            "type": "string"
+            "type": "integer",
+            "format": "int32"
           },
           "last_message_time": {
             "type": "string",
@@ -557,23 +573,6 @@
           },
           "metadata": {
             "type": "object"
-          }
-        }
-      }
-    },
-    "securitySchemes": {
-      "keycloak": {
-        "type": "oauth2",
-        "in": "header",
-        "scheme": "bearer",
-        "bearerFormat": "JWT",
-        "flows": {
-          "password": {
-            "authorizationUrl": "http://localhost:8080/realms/chatapp-realm/protocol/openid-connect/auth",
-            "tokenUrl": "http://localhost:8080/realms/chatapp-realm/protocol/openid-connect/token",
-            "scopes": {
-
-            }
           }
         }
       }

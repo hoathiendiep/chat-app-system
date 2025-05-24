@@ -45,7 +45,7 @@ interface ChatRepository : JpaRepository<Chat, UUID> {
                         END AS recipientOnline
 
                     FROM chat c
-                    LEFT JOIN (
+                    INNER JOIN (
                         SELECT DISTINCT ON(m1.chat_id) m1.chat_id, m1.content, m1.created_date, m1.type
                         FROM messages m1 ORDER BY m1.chat_id,m1.created_date DESC 
                     ) lm ON c.id = lm.chat_id
@@ -58,14 +58,13 @@ interface ChatRepository : JpaRepository<Chat, UUID> {
                     ) uc ON c.id = uc.chat_id
                     LEFT JOIN users u_sender ON u_sender.id = c.sender_id
                     LEFT JOIN users u_recipient ON u_recipient.id = c.recipient_id
-                    WHERE c.sender_id = :userId OR c.recipient_id = :userId
+                    WHERE c.sender_id = :userId OR c.recipient_id = :userId ORDER BY lm.created_date DESC 
         """,
         nativeQuery = true
     )
     fun findChatsWithLastMessageAndUnreadCount(
         @Param("userId") userId: UUID,
-        @Param("unreadState") unreadState: Int = 0,
-        pageable: Pageable
+        @Param("unreadState") unreadState: Int = 0
     ): List<ChatPreviewResponse>
 
 
