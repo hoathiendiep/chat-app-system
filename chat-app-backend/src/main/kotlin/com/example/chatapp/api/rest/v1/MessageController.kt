@@ -21,7 +21,6 @@ import java.util.UUID
 @RestController
 @RequestMapping("/messages")
 @Tag(name = "Message")
-@CrossOrigin(origins = ["localhost:4200"])
 class MessageController(
     private val messageService: MessageService,
     private val responseFactory: ApiResponseFactory

@@ -16,7 +16,6 @@ import { ApiResponseUuid } from '../models/api-response-uuid';
 import { createChat } from '../fn/chat/create-chat';
 import { CreateChat$Params } from '../fn/chat/create-chat';
 import { getChatsByReceiver } from '../fn/chat/get-chats-by-receiver';
-import { GetChatsByReceiver$Params } from '../fn/chat/get-chats-by-receiver';
 
 @Injectable({ providedIn: 'root' })
 export class ChatService extends BaseService {
@@ -58,8 +57,8 @@ export class ChatService extends BaseService {
    *
    * This method doesn't expect any request body.
    */
-  getChatsByReceiver$Response(params?: GetChatsByReceiver$Params, context?: HttpContext): Observable<StrictHttpResponse<ApiResponseListChatPreviewResponse>> {
-    return getChatsByReceiver(this.http, this.rootUrl, params, context);
+  getChatsByReceiver$Response(context?: HttpContext): Observable<StrictHttpResponse<ApiResponseListChatPreviewResponse>> {
+    return getChatsByReceiver(this.http, this.rootUrl, context);
   }
 
   /**
@@ -68,8 +67,8 @@ export class ChatService extends BaseService {
    *
    * This method doesn't expect any request body.
    */
-  getChatsByReceiver(params?: GetChatsByReceiver$Params, context?: HttpContext): Observable<ApiResponseListChatPreviewResponse> {
-    return this.getChatsByReceiver$Response(params, context).pipe(
+  getChatsByReceiver(context?: HttpContext): Observable<ApiResponseListChatPreviewResponse> {
+    return this.getChatsByReceiver$Response(context).pipe(
       map((r: StrictHttpResponse<ApiResponseListChatPreviewResponse>): ApiResponseListChatPreviewResponse => r.body)
     );
   }

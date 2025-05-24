@@ -54,12 +54,11 @@ class ChatServiceImpl (
         }
     }
 
-    override fun retrieveChatsPreview(authentication: Authentication, page: Int, size: Int) :List<ChatPreviewResponse> {
+    override fun retrieveChatsPreview(authentication: Authentication) :List<ChatPreviewResponse> {
         log.info("Start retrieveChatsPreview")
         try {
             val userId = UUID.fromString(authentication.name)
-            val pageable: Pageable = PageRequest.of(page, size, Sort.by("created_date").descending())
-            return chatRepository.findChatsWithLastMessageAndUnreadCount(userId,MessageState.SENT.code,pageable)
+            return chatRepository.findChatsWithLastMessageAndUnreadCount(userId,MessageState.SENT.code)
         }
         catch (ex : Exception){
             ex.printStackTrace()

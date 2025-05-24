@@ -11,8 +11,8 @@ import { Notification } from './models/notification';
 import { ChatPreviewResponse, MessageRequest, MessageResponse, UserResponse } from '../../services/models';
 import { InfiniteScrollDirective } from 'ngx-infinite-scroll';
 import { DownloadFile$Params } from '../../services/fn/message/download-file';
-import { HttpResponse } from '@angular/common/http';
 import { ConfigService } from '../../services/config.service';
+import { StrictHttpResponse } from '../../services/strict-http-response';
 
 @Component({
   selector: 'app-main',
@@ -144,9 +144,7 @@ export class MainComponent {
 
   private getAllChats() {
     this.isLoading = true
-    this.chatService.getChatsByReceiver({
-      pageNumber: 0,
-    })
+    this.chatService.getChatsByReceiver()
       .subscribe({
         next: (res) => {
           this.chats = res.data || [];
@@ -299,13 +297,21 @@ export class MainComponent {
             content: this.messageContent,
             type: 0,
             state: 0,
-            created_date: new Date().toString()
+            created_date: new Date().toString(),
           };
           this.selectedChat.last_message = this.messageContent;
           this.chatMessages.unshift(message);
-          this.messageContent = '';
           this.showEmojis = false;
           setTimeout(() => this.scrollToBottom(), 1);
+          const chatIndex = this.chats.findIndex(c => c.id === this.selectedChat.id);
+          if (chatIndex !== -1) {
+              const chat = this.chats.splice(chatIndex, 1)[0];  
+              chat.last_message_time = new Date().toString()
+              chat.last_message = this.messageContent
+              chat.last_message_type = 0
+              this.chats.unshift(chat); 
+          }
+          this.messageContent = '';
         },
         error: (err) => {
           this.isLoading = false
@@ -353,6 +359,14 @@ export class MainComponent {
                 };
                 this.selectedChat.last_message_type = 1;
                 this.chatMessages.unshift(message);
+                const chatIndex = this.chats.findIndex(c => c.id === this.selectedChat.id);
+                if (chatIndex !== -1) {
+                    const chat = this.chats.splice(chatIndex, 1)[0];  
+                    chat.last_message_time = new Date().toString()
+                    chat.last_message_type = 1
+                    this.chats.unshift(chat); 
+                }
+
                 this.messageContent = '';
                 this.showEmojis = false;
               },
@@ -421,7 +435,7 @@ export class MainComponent {
           sender_id: this.keycloakService.userId,
           recipient_id: receiver.id
         };
-        if (chat.id && !this.chats.some(existingChat => existingChat.id === chat.id)) {
+        if (chat.id && !this.chats.some(existingChat => (existingChat.id === chat.id))) {
           this.chats.unshift(chat);
         };
         this.selectedChat = chat
@@ -461,7 +475,7 @@ export class MainComponent {
     }
     const params: DownloadFile$Params = { message_id: msgId };
     this.messageService.downloadFile(params).subscribe({
-      next: (response: HttpResponse<Blob>) => {
+      next: (response: StrictHttpResponse<Blob>) => {
         const blob = response.body;
         if (!blob) {
           throw new Error('No file content returned');

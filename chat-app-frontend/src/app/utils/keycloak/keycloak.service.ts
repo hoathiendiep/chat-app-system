@@ -22,6 +22,7 @@ export class KeycloakService {
   async init() {
     await this.keycloak.init({
       onLoad: 'login-required',
+      pkceMethod: 'S256'
     });
   }
 

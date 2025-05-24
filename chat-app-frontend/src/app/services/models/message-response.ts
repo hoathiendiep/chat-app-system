@@ -4,9 +4,9 @@
 
 export interface MessageResponse {
   attachment_file?: Array<string>;
-  file_name?: string;
   content?: string;
   created_date?: string;
+  file_name?: string;
   id?: string;
   receiver_id?: string;
   sender_id?: string;

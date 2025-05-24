@@ -5,6 +5,6 @@ import org.springframework.security.core.Authentication
 import java.util.*
 
 interface ChatService {
-    fun retrieveChatsPreview(authentication: Authentication, page: Int, size: Int):List<ChatPreviewResponse>
+    fun retrieveChatsPreview(authentication: Authentication):List<ChatPreviewResponse>
     fun createChat(senderId: UUID,receiverId: UUID) : UUID?
 }

@@ -15,7 +15,6 @@ import java.util.UUID
 @RestController
 @RequestMapping("/chats")
 @Tag(name = "Chat")
-@CrossOrigin(origins = ["localhost:4200"])
 class ChatController(
     private val chatService : ChatService,
     private val responseFactory: ApiResponseFactory
@@ -33,19 +32,10 @@ class ChatController(
     }
 
     @GetMapping("/chat-preview")
-    fun getChatsByReceiver(@RequestParam pageNumber: Int = 0,
-                               @RequestParam pageSize: Int = Int.MAX_VALUE,
-                               authentication: Authentication): ApiResponse<List<ChatPreviewResponse>> {
-        val result = chatService.retrieveChatsPreview(authentication,pageNumber,pageSize)
-        val metadata = PageMetadata(
-            pageNumber = pageNumber,
-            pageSize = pageSize,
-            totalElements = result.size.toLong(),
-            sort = "${CommonConstant.DEFAULT_SORT_FIELD}${CommonConstant.COLON}${CommonConstant.SORT_DIR_DESC}"
-        )
+    fun getChatsByReceiver(authentication: Authentication): ApiResponse<List<ChatPreviewResponse>> {
+        val result = chatService.retrieveChatsPreview(authentication)
         return responseFactory.success(
-            data = result,
-            metadata = metadata
+            data = result
         )
     }
 }

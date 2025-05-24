@@ -13,6 +13,9 @@ import { StrictHttpResponse } from '../strict-http-response';
 
 import { ApiResponseListMessageResponse } from '../models/api-response-list-message-response';
 import { ApiResponseUnit } from '../models/api-response-unit';
+import { ApiResponseUuid } from '../models/api-response-uuid';
+import { downloadFile } from '../fn/message/download-file';
+import { DownloadFile$Params } from '../fn/message/download-file';
 import { getAllMessages } from '../fn/message/get-all-messages';
 import { GetAllMessages$Params } from '../fn/message/get-all-messages';
 import { saveMessage } from '../fn/message/save-message';
@@ -21,8 +24,6 @@ import { setMessageToSeen } from '../fn/message/set-message-to-seen';
 import { SetMessageToSeen$Params } from '../fn/message/set-message-to-seen';
 import { uploadMedia } from '../fn/message/upload-media';
 import { UploadMedia$Params } from '../fn/message/upload-media';
-import { ApiResponseUuid } from '../models';
-import { downloadFile, DownloadFile$Params } from '../fn/message/download-file';
 
 @Injectable({ providedIn: 'root' })
 export class MessageService extends BaseService {
@@ -130,8 +131,29 @@ export class MessageService extends BaseService {
     );
   }
 
-  downloadFile(params: DownloadFile$Params, context?: HttpContext): Observable<HttpResponse<Blob>> {
+  /** Path part for operation `downloadFile()` */
+  static readonly DownloadFilePath = '/messages/download-attachment/{message_id}';
+
+  /**
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `downloadFile()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  downloadFile$Response(params: DownloadFile$Params, context?: HttpContext): Observable<StrictHttpResponse<Blob>> {
     return downloadFile(this.http, this.rootUrl, params, context);
   }
- 
+
+  /**
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `downloadFile$Response()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  downloadFile(params: DownloadFile$Params, context?: HttpContext): Observable<StrictHttpResponse<Blob>> {
+    return this.downloadFile$Response(params, context).pipe(
+      map((r: StrictHttpResponse<Blob>) => r)
+    );
+  }
+
 }
