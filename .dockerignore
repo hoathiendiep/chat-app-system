@@ -1,0 +1,9 @@
+node_modules
+Dockerfile
+.dockerignore
+dist/
+*.spec.ts
+.vscode
+.idea
+*.log
+.git/

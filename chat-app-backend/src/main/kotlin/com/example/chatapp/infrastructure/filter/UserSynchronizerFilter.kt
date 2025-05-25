@@ -14,6 +14,7 @@ import org.springframework.web.filter.OncePerRequestFilter
 class UserSynchronizerFilter(
     private val userSynchronizer: UserSynchronizer
 ) : OncePerRequestFilter() {
+    @Synchronized
     override fun doFilterInternal(
         request: HttpServletRequest,
         response: HttpServletResponse,
