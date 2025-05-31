@@ -36,7 +36,7 @@ jobs:
           distribution: 'temurin'
 
       - name: Install Maven
-        run: sudo apt-get install maven -y
+        run: sudo apt-get update && sudo apt-get install maven -y
 
       - name: Build backend
         working-directory: ./chat-app-backend
@@ -47,12 +47,14 @@ jobs:
         with:
           name: frontend-build
           path: ./chat-app-frontend/dist/chat-app-frontend/browser
+          retention-days: 1
 
       - name: Upload backend artifact
         uses: actions/upload-artifact@v4
         with:
           name: backend-jar
           path: ./chat-app-backend/target/*.jar
+          retention-days: 1
 
   build-and-push-docker:
     needs: build-and-test
@@ -107,25 +109,34 @@ jobs:
             --document-name "AWS-RunShellScript" \
             --targets "Key=tag:Purpose,Values=ChatApp" \
             --parameters "commands=[
-              \"echo KC_BOOTSTRAP_ADMIN_USERNAME=admin > /home/ec2-user/.env\",
-              \"echo KC_BOOTSTRAP_ADMIN_PASSWORD=$KC_BOOTSTRAP_ADMIN_PASSWORD >> /home/ec2-user/.env\",
-              \"echo KC_DB=postgres >> /home/ec2-user/.env\",
-              \"echo KC_DB_USERNAME=admin >> /home/ec2-user/.env\",
-              \"echo KC_DB_PASSWORD=$KC_DB_PASSWORD >> /home/ec2-user/.env\",
-              \"echo POSTGRES_DB=chat-app-system >> /home/ec2-user/.env\",
-              \"echo ENV_TYPE=prod >> /home/ec2-user/.env\",
-              \"echo DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/chat-app-system >> /home/ec2-user/.env\",
-              \"echo DATASOURCE_USERNAME=admin >> /home/ec2-user/.env\",
-              \"echo DATASOURCE_PASSWORD=$DATASOURCE_PASSWORD >> /home/ec2-user/.env\",
-              \"echo AZURE_STORAGE_CONNECTION_STRING=\\\"AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;AccountName=devstoreaccount1;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;TableEndpoint=http://azurite:10002/devstoreaccount1;\\\" >> /home/ec2-user/.env\",
-              \"echo KEYCLOAK_ISSUER_URI=$KEYCLOAK_URI/realms/chatapp-realm >> /home/ec2-user/.env\",
-              \"echo KEYCLOAK_JWKS_URI=$KEYCLOAK_URI/realms/chatapp-realm/protocol/openid-connect/certs >> /home/ec2-user/.env\",
-              \"echo FRONT_END_BASE_URL=$FRONT_END_BASE_URL >> /home/ec2-user/.env\",
-              \"echo API_URL=$API_URL >> /home/ec2-user/.env\",
-              \"echo KEYCLOAK_URI=$KEYCLOAK_URI >> /home/ec2-user/.env\",
-              \"echo ENVIRONMENT=Production >> /home/ec2-user/.env\",
-              \"docker-compose -f /home/ec2-user/docker-compose.yml down\",
-              \"docker-compose -f /home/ec2-user/docker-compose.yml pull\",
-              \"docker-compose -f /home/ec2-user/docker-compose.yml up -d\"
+              'sudo yum update -y',
+              'sudo amazon-linux-extras install docker',
+              'sudo yum install docker -y',
+              'sudo systemctl start docker',
+              'sudo systemctl enable docker',
+              'sudo usermod -aG docker ec2-user',
+              'sudo curl -L -s \"https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -r)\" -o /usr/local/bin/docker-compose',
+              'sudo chmod +x /usr/local/bin/docker-compose',
+              'mkdir -p /home/ec2-user/',
+              'echo KC_BOOTSTRAP_ADMIN_USERNAME=admin > /home/ec2-user/.env',
+              'echo KC_BOOTSTRAP_ADMIN_PASSWORD=$KC_BOOTSTRAP_ADMIN_PASSWORD >> /home/ec2-user/.env',
+              'echo KC_DB=postgres >> /home/ec2-user/.env',
+              'echo KC_DB_USERNAME=postgres >> /home/ec2-user/.env',
+              'echo KC_DB_PASSWORD=$KC_DB_PASSWORD >> /home/ec2-user/.env',
+              'echo POSTGRES_DB=chat-app-system >> /home/ec2-user/.env',
+              'echo ENV_TYPE=prod >> /home/ec2-user/.env',
+              'echo DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/chat-app-system >> /home/ec2-user/.env',
+              'echo DATASOURCE_USERNAME=postgres >> /home/ec2-user/.env',
+              ' echo DATASOURCE_PASSWORD=$DATASOURCE_PASSWORD >> /home/ec2-user/.env',
+              ' echo AZURE_STORAGE_CONNECTION_STRING=\\\"DefaultEndpointsProtocol=http\\\\;AccountName=devstoreaccount1\\\\;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1\\\\;QueueEndpoint=http://azurite:10001/devstoreaccount1\\\\;TableEndpoint=http://azurite:10002/devstoreaccount1\\\\;\\\" >> /home/ec2-user/.env',
+              'echo KEYCLOAK_ISSUER_URI=$KEYCLOAK_URI/realms/chatapp-realm >> /home/ec2-user/.env',
+              'echo KEYCLOAK_JWKS_URI=$KEYCLOAK_URI/realms/chatapp-realm/protocol/openid-connect/certs >> /home/ec2-user/.env',
+              'echo FRONT_END_BASE_URL=$FRONT_END_BASE_URL >> /home/ec2-user/.env',
+              'echo API_URL=$API_URL >> /home/ec2-user/.env',
+              'echo KEYCLOAK_URI=$KEYCLOAK_URI >> /home/ec2-user/.env',
+              'echo ENVIRONMENT=Production >> /home/ec2-user/.env',
+              'docker-compose -f /home/ec2-user/docker-compose.yml down',
+              'docker-compose -f /home/ec2-user/docker-compose.yml pull',
+              'docker-compose -f /home/ec2-user/docker-compose.yml up -d'
             ]" \
             --comment "Deploy chat app"
