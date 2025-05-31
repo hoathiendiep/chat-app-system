@@ -1,0 +1,7 @@
+{
+    "CALLBACK_URL": "${FRONT_END_BASE_URL}",
+    "API_URL": "${API_URL}",
+    "KEYCLOAK_URI": "${KEYCLOAK_URI}",
+    "KEYCLOAK_REALM": "chatapp-realm",
+    "KEYCLOAK_CLIENT_ID": "chatapp"
+}
