@@ -25,40 +25,43 @@ interface ChatRepository : JpaRepository<Chat, UUID> {
 
     @Query(
         value = """
-                    SELECT 
-                        c.id AS id,
-                       CASE 
+                SELECT 
+                    c.id AS id,
+                    CASE 
                         WHEN c.recipient_id = :userId 
                             THEN CONCAT(u_sender.first_name, ' ', u_sender.last_name)
                         ELSE CONCAT(u_recipient.first_name, ' ', u_recipient.last_name)
-                        END AS chatName,
-                        c.sender_id AS senderId,
-                        c.recipient_id AS recipientId,
-                        COALESCE(uc.unread_count, 0) AS unreadCount,
-                        lm.content AS lastMessage,
-                        lm.type AS lastMessageType,
-                        lm.created_date AS lastMessageTime,
-                        CASE 
-                            WHEN u_recipient.last_seen >= (CURRENT_TIMESTAMP - INTERVAL '5 minutes')
-                            THEN true 
-                            ELSE false 
-                        END AS recipientOnline
-
-                    FROM chat c
-                    INNER JOIN (
-                        SELECT DISTINCT ON(m1.chat_id) m1.chat_id, m1.content, m1.created_date, m1.type
-                        FROM messages m1 ORDER BY m1.chat_id,m1.created_date DESC 
-                    ) lm ON c.id = lm.chat_id
-                    LEFT JOIN (
-                        SELECT chat_id, COUNT(*) AS unread_count
-                        FROM messages
-                        WHERE receiver_id = :userId 
-                        AND state = :unreadState
-                        GROUP BY chat_id
-                    ) uc ON c.id = uc.chat_id
-                    LEFT JOIN users u_sender ON u_sender.id = c.sender_id
-                    LEFT JOIN users u_recipient ON u_recipient.id = c.recipient_id
-                    WHERE c.sender_id = :userId OR c.recipient_id = :userId ORDER BY lm.created_date DESC 
+                    END AS chatName,
+                    c.sender_id AS senderId,
+                    c.recipient_id AS recipientId,
+                    COALESCE(uc.unread_count, 0) AS unreadCount,
+                    lm.content AS lastMessage,
+                    lm.type AS lastMessageType,
+                    lm.created_date AS lastMessageTime,
+                    CASE 
+                        WHEN c.recipient_id = :userId AND u_sender.last_seen >= (CURRENT_TIMESTAMP - INTERVAL '5 minutes') 
+                            THEN true
+                        WHEN c.sender_id = :userId AND u_recipient.last_seen >= (CURRENT_TIMESTAMP - INTERVAL '5 minutes') 
+                            THEN true
+                        ELSE false
+                    END AS recipientOnline
+                FROM chat c
+                INNER JOIN (
+                    SELECT DISTINCT ON (m1.chat_id) m1.chat_id, m1.content, m1.created_date, m1.type
+                    FROM messages m1 
+                    ORDER BY m1.chat_id, m1.created_date DESC 
+                ) lm ON c.id = lm.chat_id
+                LEFT JOIN (
+                    SELECT chat_id, COUNT(*) AS unread_count
+                    FROM messages
+                    WHERE receiver_id = :userId 
+                    AND state = :unreadState
+                    GROUP BY chat_id
+                ) uc ON c.id = uc.chat_id
+                LEFT JOIN users u_sender ON u_sender.id = c.sender_id
+                LEFT JOIN users u_recipient ON u_recipient.id = c.recipient_id
+                WHERE c.sender_id = :userId OR c.recipient_id = :userId 
+                ORDER BY lm.created_date DESC
         """,
         nativeQuery = true
     )

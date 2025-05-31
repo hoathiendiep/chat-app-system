@@ -83,7 +83,9 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     environment:
-      ENVIRONMENT: ${ENVIRONMENT}
+      API_URL: ${API_URL}
+      KEYCLOAK_URI: ${KEYCLOAK_URI}
+      FRONT_END_BASE_URL: ${FRONT_END_BASE_URL}
     ports:
       - "4200:80"
     volumes:

@@ -1,7 +1,0 @@
-{
-    "CALLBACK_URL": "http://localhost:4200",
-    "API_URL": "http://localhost:8081/chat-app-api/rs/v1",
-    "KEYCLOAK_URI": "http://localhost:8080",
-    "KEYCLOAK_REALM": "chatapp-realm",
-    "KEYCLOAK_CLIENT_ID": "chatapp"
-}

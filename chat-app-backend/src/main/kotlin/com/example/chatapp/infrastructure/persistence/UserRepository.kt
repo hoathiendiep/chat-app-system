@@ -18,10 +18,6 @@ interface UserRepository : JpaRepository<User, UUID> {
     fun findAllUsersExceptSelf(@Param("id") id: UUID): List<User>
 
 
-//    @Query(value = "UPDATE users SET is_user_online = :status WHERE id = :userId", nativeQuery = true)
-//    @Modifying
-//    fun setUserStatus(@Param("userId") userId: UUID, @Param("status") status: Boolean)
-
     @Query("SELECT u.id FROM users u WHERE u.id != :id", nativeQuery = true)
     fun findAllUserIdsExceptSelf(@Param("id") id: UUID): List<UUID>
 
