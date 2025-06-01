@@ -1,0 +1,103 @@
+services:
+  postgres-db:
+    image: postgres
+    container_name: postgres-db
+    environment:
+      POSTGRES_USER: ${DATASOURCE_USERNAME}
+      POSTGRES_PASSWORD: ${DATASOURCE_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped  
+    ports:
+      - "54320:5432"
+    networks:
+      - chat-app-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATASOURCE_USERNAME} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.2.4
+    container_name: keycloak
+    command: start-dev
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD}
+      KC_DB: ${KC_DB}
+      KC_DB_URL: ${DATASOURCE_URL}
+      KC_DB_USERNAME: ${KC_DB_USERNAME}
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD}
+    ports:
+      - "8080:8080"
+    networks:
+      - chat-app-net
+    volumes:
+      - keycloak_data:/opt/keycloak/data
+    restart: unless-stopped  
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    container_name: azurite
+    ports:
+      - "10000:10000"  
+      - "10001:10001"  
+      - "10002:10002"  
+    networks:
+      - chat-app-net
+    command: azurite --blobHost 0.0.0.0 --queueHost 0.0.0.0 --tableHost 0.0.0.0 --location /data --debug /data/debug.log
+    volumes:
+      - azurite-data:/data
+    restart: unless-stopped
+  chat-app-backend:
+    image: ${DOCKER_USERNAME}/chat-app-backend:latest
+    container_name: chat-app-backend
+    environment:
+      ENV_TYPE: ${ENV_TYPE}
+      DATASOURCE_URL: ${DATASOURCE_URL}
+      DATASOURCE_USERNAME: ${DATASOURCE_USERNAME}
+      DATASOURCE_PASSWORD: ${DATASOURCE_PASSWORD}
+      AZURE_STORAGE_CONNECTION_STRING: ${AZURE_STORAGE_CONNECTION_STRING}
+      KEYCLOAK_ISSUER_URI: ${KEYCLOAK_ISSUER_URI}
+      KEYCLOAK_JWKS_URI: ${KEYCLOAK_JWKS_URI}
+      FRONT_END_BASE_URL: ${FRONT_END_BASE_URL}
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./logs:/logs
+    networks:
+      - chat-app-net
+    restart: unless-stopped
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      azurite:
+        condition: service_started
+  chat-app-frontend:
+    image: ${DOCKER_USERNAME}/chat-app-frontend:latest
+    container_name: chat-app-frontend
+    environment:
+      API_URL: ${API_URL}
+      KEYCLOAK_URI: ${KEYCLOAK_URI}
+      FRONT_END_BASE_URL: ${FRONT_END_BASE_URL}
+    ports:
+      - "4200:80"
+    volumes:
+      - ./logs:/logs
+    networks:
+      - chat-app-net
+    restart: unless-stopped
+    depends_on:
+      - chat-app-backend
+      - keycloak
+volumes:
+  pgdata:
+  keycloak_data:
+  azurite-data:
+
+networks:
+  chat-app-net:
+    driver: bridge  
