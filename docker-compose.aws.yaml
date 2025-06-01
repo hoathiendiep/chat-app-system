@@ -19,19 +19,16 @@ services:
       timeout: 5s
       retries: 5
   keycloak:
-    image: quay.io/keycloak/keycloak:26.2.4
+    image: quay.io/keycloak/keycloak:25.0
     container_name: keycloak
     command: start-dev
     environment:
-      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME}
-      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD}
+      KEYCLOAK_ADMIN: ${KC_BOOTSTRAP_ADMIN_USERNAME}
+      KEYCLOAK_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD}
       KC_DB: ${KC_DB}
       KC_DB_URL: ${DATASOURCE_URL}
       KC_DB_USERNAME: ${KC_DB_USERNAME}
       KC_DB_PASSWORD: ${KC_DB_PASSWORD}
-      KC_HOSTNAME_STRICT_HTTPS: false
-      KC_HTTP_ENABLED: true
-
     ports:
       - "8080:8080"
     networks:
@@ -56,8 +53,10 @@ services:
       - azurite-data:/data
     restart: unless-stopped
   chat-app-backend:
-    image: ${DOCKER_USERNAME}/chat-app-backend:latest
     container_name: chat-app-backend
+    build:
+      context: ./chat-app-backend
+      dockerfile: Dockerfile
     restart: unless-stopped
     environment:
       ENV_TYPE: ${ENV_TYPE}
@@ -78,8 +77,10 @@ services:
       postgres-db:
         condition: service_healthy
   chat-app-frontend:
-    image: ${DOCKER_USERNAME}/chat-app-frontend:latest
     container_name: chat-app-frontend
+    build:
+      context: ./chat-app-frontend
+      dockerfile: Dockerfile
     restart: unless-stopped
     environment:
       API_URL: ${API_URL}

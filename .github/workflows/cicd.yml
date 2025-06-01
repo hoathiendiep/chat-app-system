@@ -21,7 +21,7 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           port: 22
-          source: "chat-app-frontend,chat-app-backend,docker-compose.yaml"
+          source: "chat-app-frontend,chat-app-backend,docker-compose.aws.yaml"
           target: "/home/ec2-user"
 
       - name: Deploy to EC2
@@ -36,7 +36,7 @@ jobs:
             set -e
 
             # Verify files
-            for dir in chat-app-frontend chat-app-backend docker-compose.yaml; do
+            for dir in chat-app-frontend chat-app-backend docker-compose.aws.yaml; do
               if [ ! -e "/home/ec2-user/$dir" ]; then
                 echo "Error: $dir not found"
                 exit 1
@@ -101,8 +101,8 @@ jobs:
 
             # Run Docker Compose
             cd /home/ec2-user
-            docker-compose --env-file .env -f docker-compose.yaml pull
-            docker-compose --env-file .env -f docker-compose.yaml up -d
+            docker-compose --env-file .env -f docker-compose.aws.yaml pull
+            docker-compose --env-file .env -f docker-compose.aws.yaml up -d
             sleep 10
-            docker-compose --env-file .env -f docker-compose.yaml ps
+            docker-compose --env-file .env -f docker-compose.aws.yaml ps
             docker logs $(docker ps -q -f name=chat-app-frontend) || true
