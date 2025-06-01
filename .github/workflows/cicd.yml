@@ -107,7 +107,7 @@ jobs:
             KC_DB_USERNAME=admin
             KC_DB_PASSWORD=${{ secrets.KC_DB_PASSWORD }}
             POSTGRES_DB=chat-app-system
-            ENV_TYPE=prod
+            ENV_TYPE=dev
             DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/chat-app-system
             DATASOURCE_USERNAME=admin
             DATASOURCE_PASSWORD=${{ secrets.DATASOURCE_PASSWORD }}
