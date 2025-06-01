@@ -71,14 +71,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Copy docker-compose.aws.yaml to EC2
+      - name: Copy docker-compose.yml to EC2
         uses: appleboy/scp-action@v0.1.4
         with:
           host: ${{ secrets.EC2_PUBLIC_IP }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           port: 22
-          source: "docker-compose.aws.yaml"
+          source: "docker-compose.yml"
           target: "/home/ec2-user"
 
       - name: Deploy to EC2
@@ -93,13 +93,14 @@ jobs:
             #!/bin/bash
             set -e
 
-            # Verify docker-compose.aws.yaml
-            if [ ! -f /home/ec2-user/docker-compose.aws.yaml ]; then
-              echo "Error: docker-compose.aws.yaml not found"
+            # Verify docker-compose.yml
+            if [ ! -f /home/ec2-user/docker-compose.yml ]; then
+              echo "Error: docker-compose.yml not found"
               exit 1
             fi
 
             # Create .env file
+            echo "Creating .env file..."
             cat <<EOT > /home/ec2-user/.env
             KC_BOOTSTRAP_ADMIN_USERNAME=admin
             KC_BOOTSTRAP_ADMIN_PASSWORD=${KC_BOOTSTRAP_ADMIN_PASSWORD}
@@ -120,6 +121,18 @@ jobs:
             DOCKER_USERNAME=${DOCKER_USERNAME}
             EOT
 
+            # Verify .env file creation
+            if [ ! -f /home/ec2-user/.env ]; then
+              echo "Error: Failed to create .env file"
+              exit 1
+            else
+              echo ".env file created successfully"
+              cat /home/ec2-user/.env
+            fi
+
+            # Debug: Print DOCKER_USERNAME
+            echo "DOCKER_USERNAME: ${DOCKER_USERNAME}"
+
             # Install dependencies
             sudo yum update -y
             sudo yum install -y docker
@@ -128,14 +141,16 @@ jobs:
             sudo usermod -aG docker ec2-user
 
             # Install Docker Compose
+            echo "Installing Docker Compose..."
             sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
             sudo chmod +x /usr/local/bin/docker-compose
+            docker-compose --version
 
             # Run Docker Compose
             cd /home/ec2-user
-            docker-compose --env-file .env -f docker-compose.aws.yaml down || true
-            docker-compose --env-file .env -f docker-compose.aws.yaml pull
-            docker-compose --env-file .env -f docker-compose.aws.yaml up -d
-
-            # Check status
-            docker-compose --env-file .env -f docker-compose.aws.yaml ps
+            echo "Running docker-compose pull..."
+            docker-compose --env-file .env -f docker-compose.yml pull || { echo "docker-compose pull failed"; exit 1; }
+            echo "Running docker-compose up..."
+            docker-compose --env-file .env -f docker-compose.yml up -d
+            echo "Checking container status..."
+            docker-compose --env-file .env -f docker-compose.yml ps
