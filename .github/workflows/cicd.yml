@@ -87,31 +87,33 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
+  
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-southeast-1
-
-      - name: Create deploy.sh script
+  
+      - name: Create and upload deploy.sh script to SSM
         run: |
+          echo 'Creating deploy.sh script...'
+  
           cat <<'EOF' > deploy.sh
           #!/bin/bash
           set -e
-
+  
           sudo yum update -y
           sudo yum install -y docker
           sudo systemctl start docker
           sudo systemctl enable docker
           sudo usermod -aG docker ec2-user
-
+  
           sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
           sudo chmod +x /usr/local/bin/docker-compose
-
+  
           mkdir -p /home/ec2-user
-
+  
           cat <<EOT > /home/ec2-user/.env
           KC_BOOTSTRAP_ADMIN_USERNAME=admin
           KC_BOOTSTRAP_ADMIN_PASSWORD=${{ secrets.KC_BOOTSTRAP_ADMIN_PASSWORD }}
@@ -131,18 +133,27 @@ jobs:
           KEYCLOAK_URI=http://${{ secrets.EC2_PUBLIC_IP }}:8080
           ENVIRONMENT=Production
           EOT
-
+  
           cd /home/ec2-user
           docker-compose down || true
           docker-compose pull
           docker-compose up -d
           EOF
-
-      - name: Send script to EC2 via SSM and execute
+  
+      - name: Upload script as base64 and send it via SSM
         run: |
+          # Base64 encode the deploy script
+          ENCODED_SCRIPT=$(base64 -w 0 deploy.sh)
+  
+          # Send command to EC2 that decodes and executes the script
           aws ssm send-command \
             --document-name "AWS-RunShellScript" \
             --targets "Key=tag:Purpose,Values=ChatApp" \
-            --parameters commands=["$(cat deploy.sh | base64 | tr -d '\n' | base64 -d)"] \
-            --comment "Deploy chat app" \
+            --parameters commands=[
+              "echo $ENCODED_SCRIPT | base64 -d > /tmp/deploy.sh",
+              "chmod +x /tmp/deploy.sh",
+              "sudo bash /tmp/deploy.sh"
+            ] \
+            --comment "Run deploy.sh on EC2" \
             --output text
+
