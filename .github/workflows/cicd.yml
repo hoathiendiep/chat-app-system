@@ -2,11 +2,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -16,7 +14,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Node.js for frontend
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -29,7 +27,7 @@ jobs:
         working-directory: ./chat-app-frontend
         run: npm run build
 
-      - name: Set up JDK for backend
+      - name: Set up Java
         uses: actions/setup-java@v4
         with:
           java-version: '21'
@@ -42,40 +40,25 @@ jobs:
         working-directory: ./chat-app-backend
         run: mvn clean install -DskipTests
 
-      - name: Upload frontend artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-build
-          path: ./chat-app-frontend/dist/chat-app-frontend/browser
-          retention-days: 1
-
-      - name: Upload backend artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-jar
-          path: ./chat-app-backend/target/*.jar
-          retention-days: 1
-
   build-and-push-docker:
     needs: build-and-test
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Log in to Docker Hub
+      - name: Docker login
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and push backend Docker image
+      - name: Build and push backend
         working-directory: ./chat-app-backend
         run: |
           docker build -t ${{ secrets.DOCKER_USERNAME }}/chat-app-backend:latest .
           docker push ${{ secrets.DOCKER_USERNAME }}/chat-app-backend:latest
 
-      - name: Build and push frontend Docker image
+      - name: Build and push frontend
         working-directory: ./chat-app-frontend
         run: |
           docker build -t ${{ secrets.DOCKER_USERNAME }}/chat-app-frontend:latest .
@@ -95,58 +78,55 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-southeast-1
 
-      - name: Deploy via SSM
+      - name: Deploy to EC2
+        env:
+          EC2_PUBLIC_IP: ${{ secrets.EC2_PUBLIC_IP }}
+          KC_BOOTSTRAP_ADMIN_PASSWORD: ${{ secrets.KC_BOOTSTRAP_ADMIN_PASSWORD }}
+          KC_DB_PASSWORD: ${{ secrets.KC_DB_PASSWORD }}
+          DATASOURCE_PASSWORD: ${{ secrets.DATASOURCE_PASSWORD }}
         run: |
-          SCRIPT=$(cat <<'EOF'
+          ENCODED_SCRIPT=$(cat <<'EOF' | base64
           #!/bin/bash
           set -e
-          
+
           sudo yum update -y
           sudo yum install -y docker
           sudo systemctl start docker
           sudo systemctl enable docker
           sudo usermod -aG docker ec2-user
-          
+
           sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
           sudo chmod +x /usr/local/bin/docker-compose
-          
+
           mkdir -p /home/ec2-user
-          
+
           cat <<EOT > /home/ec2-user/.env
           KC_BOOTSTRAP_ADMIN_USERNAME=admin
-          KC_BOOTSTRAP_ADMIN_PASSWORD=${{ secrets.KC_BOOTSTRAP_ADMIN_PASSWORD }}
+          KC_BOOTSTRAP_ADMIN_PASSWORD=${KC_BOOTSTRAP_ADMIN_PASSWORD}
           KC_DB=postgres
           KC_DB_USERNAME=postgres
-          KC_DB_PASSWORD=${{ secrets.KC_DB_PASSWORD }}
+          KC_DB_PASSWORD=${KC_DB_PASSWORD}
           POSTGRES_DB=chat-app-system
           ENV_TYPE=prod
           DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/chat-app-system
           DATASOURCE_USERNAME=postgres
-          DATASOURCE_PASSWORD=${{ secrets.DATASOURCE_PASSWORD }}
+          DATASOURCE_PASSWORD=${DATASOURCE_PASSWORD}
           AZURE_STORAGE_CONNECTION_STRING="DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;TableEndpoint=http://azurite:10002/devstoreaccount1;"
-          KEYCLOAK_ISSUER_URI=http://${{ secrets.EC2_PUBLIC_IP }}:8080/realms/chatapp-realm
-          KEYCLOAK_JWKS_URI=http://${{ secrets.EC2_PUBLIC_IP }}:8080/realms/chatapp-realm/protocol/openid-connect/certs
-          FRONT_END_BASE_URL=http://${{ secrets.EC2_PUBLIC_IP }}:4200
-          API_URL=http://${{ secrets.EC2_PUBLIC_IP }}:8081/chat-app-api/rs/v1
-          KEYCLOAK_URI=http://${{ secrets.EC2_PUBLIC_IP }}:8080
-          ENVIRONMENT=Production
+          KEYCLOAK_ISSUER_URI=http://${EC2_PUBLIC_IP}:8080/realms/chatapp-realm
+          KEYCLOAK_JWKS_URI=http://${EC2_PUBLIC_IP}:8080/realms/chatapp-realm/protocol/openid-connect/certs
+          FRONT_END_BASE_URL=http://${EC2_PUBLIC_IP}:4200
+          API_URL=http://${EC2_PUBLIC_IP}:8081/chat-app-api/rs/v1
+          KEYCLOAK_URI=http://${EC2_PUBLIC_IP}:8080
           EOT
-          
+
           cd /home/ec2-user
           docker-compose down || true
           docker-compose pull
           docker-compose up -d
           EOF
           )
-          
-                    ENCODED_SCRIPT=$(echo "$SCRIPT" | base64 -w 0)
-          
-                    aws ssm send-command \
-                      --document-name "AWS-RunShellScript" \
-                      --targets "Key=tag:Purpose,Values=ChatApp" \
-                      --comment "Deploying chat app to EC2" \
-                      --parameters commands="[
-                        \"echo $ENCODED_SCRIPT | base64 -d > /tmp/deploy.sh\",
-                        \"chmod +x /tmp/deploy.sh\",
-                        \"sudo bash /tmp/deploy.sh\"
-                      ]"
+          aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
+            --targets "Key=tag:Purpose,Values=ChatApp" \
+            --parameters "commands=echo \$ENCODED_SCRIPT | base64 -d | bash" \
+            --comment "Deploy Chat App"
