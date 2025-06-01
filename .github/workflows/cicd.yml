@@ -71,6 +71,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Copy docker-compose.yaml to EC2
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.EC2_PUBLIC_IP }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          port: 22
+          source: "docker-compose.yaml"
+          target: "/home/ec2-user"
+
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1
         with:
@@ -78,32 +88,28 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           port: 22
-          envs: EC2_PUBLIC_IP,KC_BOOTSTRAP_ADMIN_PASSWORD,KC_DB_PASSWORD,DATASOURCE_PASSWORD
+          envs: EC2_PUBLIC_IP,KC_BOOTSTRAP_ADMIN_PASSWORD,KC_DB_PASSWORD,DATASOURCE_PASSWORD,DOCKER_USERNAME
           script: |
             #!/bin/bash
             set -e
 
-            sudo yum update -y
-            sudo yum install -y docker
-            sudo systemctl start docker
-            sudo systemctl enable docker
-            sudo usermod -aG docker ec2-user
+            # Verify docker-compose.yaml
+            if [ ! -f /home/ec2-user/docker-compose.yaml ]; then
+              echo "Error: docker-compose.yaml not found"
+              exit 1
+            fi
 
-            sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-            sudo chmod +x /usr/local/bin/docker-compose
-
-            mkdir -p /home/ec2-user
-
+            # Create .env file
             cat <<EOT > /home/ec2-user/.env
             KC_BOOTSTRAP_ADMIN_USERNAME=admin
             KC_BOOTSTRAP_ADMIN_PASSWORD=${KC_BOOTSTRAP_ADMIN_PASSWORD}
             KC_DB=postgres
-            KC_DB_USERNAME=postgres
+            KC_DB_USERNAME=admin
             KC_DB_PASSWORD=${KC_DB_PASSWORD}
             POSTGRES_DB=chat-app-system
             ENV_TYPE=prod
             DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/chat-app-system
-            DATASOURCE_USERNAME=postgres
+            DATASOURCE_USERNAME=admin
             DATASOURCE_PASSWORD=${DATASOURCE_PASSWORD}
             AZURE_STORAGE_CONNECTION_STRING="DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;TableEndpoint=http://azurite:10002/devstoreaccount1;"
             KEYCLOAK_ISSUER_URI=http://${EC2_PUBLIC_IP}:8080/realms/chatapp-realm
@@ -111,10 +117,25 @@ jobs:
             FRONT_END_BASE_URL=http://${EC2_PUBLIC_IP}:4200
             API_URL=http://${EC2_PUBLIC_IP}:8081/chat-app-api/rs/v1
             KEYCLOAK_URI=http://${EC2_PUBLIC_IP}:8080
-            ENVIRONMENT=Production
+            DOCKER_USERNAME=${DOCKER_USERNAME}
             EOT
 
+            # Install dependencies
+            sudo yum update -y
+            sudo yum install -y docker
+            sudo systemctl start docker
+            sudo systemctl enable docker
+            sudo usermod -aG docker ec2-user
+
+            # Install Docker Compose
+            sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+            sudo chmod +x /usr/local/bin/docker-compose
+
+            # Run Docker Compose
             cd /home/ec2-user
-            docker-compose down || true
-            docker-compose pull
-            docker-compose up -d
+            docker-compose --env-file .env -f docker-compose.yaml down || true
+            docker-compose --env-file .env -f docker-compose.yaml pull
+            docker-compose --env-file .env -f docker-compose.yaml up -d
+
+            # Check status
+            docker-compose --env-file .env -f docker-compose.yaml ps
