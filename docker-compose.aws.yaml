@@ -55,6 +55,7 @@ services:
   chat-app-backend:
     image: ${DOCKER_USERNAME}/chat-app-backend:latest
     container_name: chat-app-backend
+    restart: unless-stopped
     environment:
       ENV_TYPE: ${ENV_TYPE}
       DATASOURCE_URL: ${DATASOURCE_URL}
@@ -70,15 +71,13 @@ services:
       - ./logs:/logs
     networks:
       - chat-app-net
-    restart: unless-stopped
     depends_on:
       postgres-db:
         condition: service_healthy
-      azurite:
-        condition: service_started
   chat-app-frontend:
     image: ${DOCKER_USERNAME}/chat-app-frontend:latest
     container_name: chat-app-frontend
+    restart: unless-stopped
     environment:
       API_URL: ${API_URL}
       KEYCLOAK_URI: ${KEYCLOAK_URI}
@@ -89,10 +88,6 @@ services:
       - ./logs:/logs
     networks:
       - chat-app-net
-    restart: unless-stopped
-    depends_on:
-      - chat-app-backend
-      - keycloak
 volumes:
   pgdata:
   keycloak_data:
