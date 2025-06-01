@@ -71,14 +71,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Copy docker-compose.aws.yaml to EC2
+      - name: Copy docker-compose.yml to EC2
         uses: appleboy/scp-action@v0.1.4
         with:
           host: ${{ secrets.EC2_PUBLIC_IP }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           port: 22
-          source: "docker-compose.aws.yaml"
+          source: "docker-compose.yml"
           target: "/home/ec2-user"
 
       - name: Deploy to EC2
@@ -88,14 +88,13 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           port: 22
-          envs: EC2_PUBLIC_IP,KC_BOOTSTRAP_ADMIN_PASSWORD,KC_DB_PASSWORD,DATASOURCE_PASSWORD,DOCKER_USERNAME
           script: |
             #!/bin/bash
             set -e
 
-            # Verify docker-compose.aws.yaml
-            if [ ! -f /home/ec2-user/docker-compose.aws.yaml ]; then
-              echo "Error: docker-compose.aws.yaml not found"
+            # Verify docker-compose.yml
+            if [ ! -f /home/ec2-user/docker-compose.yml ]; then
+              echo "Error: docker-compose.yml not found"
               exit 1
             fi
 
@@ -103,22 +102,22 @@ jobs:
             echo "Creating .env file..."
             cat <<EOT > /home/ec2-user/.env
             KC_BOOTSTRAP_ADMIN_USERNAME=admin
-            KC_BOOTSTRAP_ADMIN_PASSWORD=${KC_BOOTSTRAP_ADMIN_PASSWORD}
+            KC_BOOTSTRAP_ADMIN_PASSWORD=${{ secrets.KC_BOOTSTRAP_ADMIN_PASSWORD }}
             KC_DB=postgres
             KC_DB_USERNAME=admin
-            KC_DB_PASSWORD=${KC_DB_PASSWORD}
+            KC_DB_PASSWORD=${{ secrets.KC_DB_PASSWORD }}
             POSTGRES_DB=chat-app-system
             ENV_TYPE=prod
             DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/chat-app-system
             DATASOURCE_USERNAME=admin
-            DATASOURCE_PASSWORD=${DATASOURCE_PASSWORD}
+            DATASOURCE_PASSWORD=${{ secrets.DATASOURCE_PASSWORD }}
             AZURE_STORAGE_CONNECTION_STRING="DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;TableEndpoint=http://azurite:10002/devstoreaccount1;"
-            KEYCLOAK_ISSUER_URI=http://${EC2_PUBLIC_IP}:8080/realms/chatapp-realm
-            KEYCLOAK_JWKS_URI=http://${EC2_PUBLIC_IP}:8080/realms/chatapp-realm/protocol/openid-connect/certs
-            FRONT_END_BASE_URL=http://${EC2_PUBLIC_IP}:4200
-            API_URL=http://${EC2_PUBLIC_IP}:8081/chat-app-api/rs/v1
-            KEYCLOAK_URI=http://${EC2_PUBLIC_IP}:8080
-            DOCKER_USERNAME=${DOCKER_USERNAME}
+            KEYCLOAK_ISSUER_URI=http://${{ secrets.EC2_PUBLIC_IP }}:8080/realms/chatapp-realm
+            KEYCLOAK_JWKS_URI=http://${{ secrets.EC2_PUBLIC_IP }}:8080/realms/chatapp-realm/protocol/openid-connect/certs
+            FRONT_END_BASE_URL=http://${{ secrets.EC2_PUBLIC_IP }}:4200
+            API_URL=http://${{ secrets.EC2_PUBLIC_IP }}:8081/chat-app-api/rs/v1
+            KEYCLOAK_URI=http://${{ secrets.EC2_PUBLIC_IP }}:8080
+            DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
             EOT
 
             # Verify .env file creation
@@ -127,13 +126,20 @@ jobs:
               exit 1
             else
               echo ".env file created successfully"
+              echo "Contents of .env:"
               cat /home/ec2-user/.env
             fi
 
-            # Debug: Print DOCKER_USERNAME
-            echo "DOCKER_USERNAME: ${DOCKER_USERNAME}"
+            # Debug: Check DOCKER_USERNAME in .env
+            DOCKER_USERNAME=$(grep DOCKER_USERNAME /home/ec2-user/.env | cut -d '=' -f2)
+            echo "DOCKER_USERNAME from .env: ${DOCKER_USERNAME}"
+            if [ -z "${DOCKER_USERNAME}" ]; then
+              echo "Error: DOCKER_USERNAME is empty in .env"
+              exit 1
+            fi
 
             # Install dependencies
+            echo "Installing dependencies..."
             sudo yum update -y
             sudo yum install -y docker
             sudo systemctl start docker
@@ -149,8 +155,8 @@ jobs:
             # Run Docker Compose
             cd /home/ec2-user
             echo "Running docker-compose pull..."
-            docker-compose --env-file .env -f docker-compose.aws.yaml pull || { echo "docker-compose pull failed"; exit 1; }
+            docker-compose --env-file .env -f docker-compose.yml pull || { echo "docker-compose pull failed"; exit 1; }
             echo "Running docker-compose up..."
-            docker-compose --env-file .env -f docker-compose.aws.yaml up -d
+            docker-compose --env-file .env -f docker-compose.yml up -d
             echo "Checking container status..."
-            docker-compose --env-file .env -f docker-compose.aws.yaml ps
+            docker-compose --env-file .env -f docker-compose.yml ps
