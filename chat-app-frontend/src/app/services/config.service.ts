@@ -18,7 +18,7 @@ export class ConfigService {
   //We create the configuration with default values in case anything fails
   private configuration: AppConfig = {
     API_URL: 'http://localhost:8081/chat-app-api/rs/v1',
-    KEYCLOAK_URI: 'http://localhost:8080',
+    KEYCLOAK_URI: 'http://localhosssst:8080',
     KEYCLOAK_REALM:'chatapp-realm',
     KEYCLOAK_CLIENT_ID: 'chatapp',
     CALLBACK_URL: 'http://localhost:4200'
@@ -31,8 +31,14 @@ export class ConfigService {
 
   //This function will get the current config for the environment
   setConfig(): Promise<void | AppConfig> {
-    return firstValueFrom(this.http.get<AppConfig>('./app-config.json'))
-      .then((config: AppConfig) => (this.configuration = config))
+    return firstValueFrom(this.http.get<AppConfig>('/app-config.json',{
+      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
+    }))
+      .then((config: AppConfig) => {
+      console.log('Config loaded:', config);
+      this.configuration = config;
+      return config;
+    })
       .catch((error) => {
         console.error(error);
       });

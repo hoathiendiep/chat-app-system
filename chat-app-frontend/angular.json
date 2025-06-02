@@ -26,7 +26,8 @@
                 "input": "public"
               },
               "src/config",
-              "src/assets"
+              "src/assets",
+              "src/app-config.json"
             ],
             "styles": [
               "src/styles.css",
