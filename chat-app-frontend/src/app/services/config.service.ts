@@ -31,8 +31,13 @@ export class ConfigService {
 
   //This function will get the current config for the environment
   setConfig(): Promise<void | AppConfig> {
-    return firstValueFrom(this.http.get<AppConfig>('./app-config.json'))
-      .then((config: AppConfig) => (this.configuration = config))
+    return firstValueFrom(this.http.get<AppConfig>('/app-config.json',{
+      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
+    }))
+      .then((config: AppConfig) => {
+      this.configuration = config;
+      return config;
+    })
       .catch((error) => {
         console.error(error);
       });

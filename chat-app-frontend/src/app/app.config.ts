@@ -13,11 +13,8 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(withInterceptors([keycloakHttpInterceptor])),
     provideAppInitializer(() => {
       const configService = inject(ConfigService);
-      return configService.setConfig();
-    }),
-    provideAppInitializer(() => {
       const keycloakService = inject(KeycloakService);
-      return keycloakService.init();
+      return configService.setConfig().then(()=>keycloakService.init());
     }),
   ],
 };
