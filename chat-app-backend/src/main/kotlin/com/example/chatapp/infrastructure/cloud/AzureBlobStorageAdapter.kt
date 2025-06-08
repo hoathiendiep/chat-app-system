@@ -13,7 +13,12 @@ class AzureBlobStorageAdapter (
     private val logger = LoggerFactory.getLogger(this::class.java)
 
     override fun uploadAttachment(containerName: String, path: String, data: ByteArray): String {
-        val blobContainerClient = blobServiceClient.getBlobContainerClient(containerName)
+        var blobContainerClient = blobServiceClient.getBlobContainerClient(containerName)
+        if (!blobContainerClient.exists()) {
+            blobContainerClient = blobServiceClient.createBlobContainer(containerName)
+            logger.info("Created new container: $containerName")
+        }
+
         val blobClient = blobContainerClient.getBlobClient(path)
         logger.info("Start uploadFile containerName: $containerName path: $path")
         try {

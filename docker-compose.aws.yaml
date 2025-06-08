@@ -80,7 +80,7 @@ services:
     container_name: chat-app-frontend
     build:
       context: ./chat-app-frontend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.aws
     restart: unless-stopped
     environment:
       API_URL: ${API_URL}
