@@ -52,7 +52,7 @@ The system comprises five services, orchestrated with Docker Compose:
 3. **Run Docker Compose**:
    - The `docker-compose.yaml` file configures all services, with `Dockerfile` paths for `chat-app-api` and `chat-backend-api` correctly specified.
    ```bash
-   docker-compose.yml up -d
+   docker-compose.yaml up -d
    ```
 
 4. **Configure Keycloak**:
@@ -86,8 +86,15 @@ The system comprises five services, orchestrated with Docker Compose:
 
 8. **Stop Containers**:
     ```bash
-    docker-compose.yml down
+    docker-compose.yaml down
     ```
+## CI/CD Pipeline
+
+The repository includes a GitHub Actions workflow (`cicd.yml`) for automated deployment to an AWS EC2 t3.small instance running Linux. The pipeline:
+- Pushes source code (`chat-app-frontend`, `chat-app-backend`, `docker-compose.aws.yaml`) to EC2.
+- Installs Docker, Node.js, Java, and Maven on EC2.
+- Compiles frontend and backend code.
+- Builds Docker images and deploys services using Docker Compose.
 
 ## AWS Deployment
 
@@ -109,34 +116,25 @@ The system comprises five services, orchestrated with Docker Compose:
 2. **Configure Domain in Route 53**:
    - Create a hosted zone for your domain in Route 53.
    - Add an A record mapping your domain (e.g., `<your-domain>`) to your EC2’s public IP.
-   - Update your domain’s nameservers at Hostinger to match those provided by Route 53.
+   - Update your domain’s nameservers to match those provided by Route 53.
 
 3. **Configure Nginx.conf, Keycloak, PostgreSQL, and Azurite**:
-   - In chat-app-frontend/nginx.conf, update the `server_name` and `Access-Control-Allow-Origin` directive to your domain
+   - In chat-app-frontend/aws/nginx.conf, update the `server_name` and `Access-Control-Allow-Origin` directive to your domain
    - Follow the respective sections above, using the `http://<your-ec2-public-ip>` for URLs.
-   - Make sure in Keycloak setup URL and web origins based on your domain
-   - Update cicd.yml
+   - Make sure in Keycloak setup URL and web origins based on your domain.
 
-4. **Access the Application**:
+4. **Configure GitHub Secrets**:
+    In `Settings > Secrets and variables > Actions`, add:
+    - `EC2_PUBLIC_IP`: Your EC2 instance’s public IP.
+    - `EC2_SSH_PRIVATE_KEY`: Contents of `chat-app-key.pem`.
+    - `KC_BOOTSTRAP_ADMIN_PASSWORD`: Keycloak admin password.
+    - `KC_DB_PASSWORD`: Keycloak database password.
+    - `DATASOURCE_PASSWORD`: PostgreSQL password.
+    - `DOMAIN_URL`: Your domain.
+
+5. **Access the Application**:
    - Open `http://<your-domain>`. 
-
-## CI/CD Pipeline
-
-The repository includes a GitHub Actions workflow (`cicd.yml`) for automated deployment to an AWS EC2 t3.small instance running Linux. The pipeline:
-- Pushes source code (`chat-app-api`, `chat-app-backend`, `docker-compose.aws.yaml`) to EC2.
-- Installs Docker, Node.js, Java, and Maven on EC2.
-- Compiles frontend and backend code.
-- Builds Docker images and deploys services using Docker Compose.
-
-### Configure GitHub Secrets
-In `Settings > Secrets and variables > Actions`, add:
-- `EC2_PUBLIC_IP`: Your EC2 instance’s public IP.
-- `EC2_SSH_PRIVATE_KEY`: Contents of `chat-app-key.pem`.
-- `KC_BOOTSTRAP_ADMIN_PASSWORD`: Keycloak admin password.
-- `KC_DB_PASSWORD`: Keycloak database password.
-- `DATASOURCE_PASSWORD`: PostgreSQL password.
-- `DOMAIN_URL`: Your domain
-
+ 
 ## Troubleshooting
 
 - **Keycloak Login Issues**:
@@ -144,10 +142,17 @@ In `Settings > Secrets and variables > Actions`, add:
   - Check redirect URIs and web origins. 
 
 - **Container Issues**:
-  ```bash
-  docker-compose logs -f <container-name> 
-  ```
- 
+  - Debugging logs:
+    ```bash
+    docker-compose logs -f <container-name> 
+    ```
+  - Check file line endings (LF vs. CRLF) for `entrypoint.sh`:
+    - **Expected output:** `entrypoint.sh: ASCII text, with LF line endings`
+    - **Fix CRLF using VS Code**:
+      1. Open the file in VS Code.
+      2. **Look at the bottom-right corner**—click `CRLF`, then select `LF`.
+      3. **Save the file** (`Ctrl + S` or `Cmd + S`).
+
 ## Contact
 
 For issues or contributions, open a GitHub issue or contact [hoathiendiep@gmail.com].
