@@ -58,8 +58,8 @@ jobs:
             AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;TableEndpoint=http://azurite:10002/devstoreaccount1;
             KEYCLOAK_ISSUER_URI=http://${{ secrets.EC2_PUBLIC_IP }}:8080/realms/chatapp-realm
             KEYCLOAK_JWKS_URI=http://keycloak:8080/realms/chatapp-realm/protocol/openid-connect/certs
-            FRONT_END_BASE_URL=http://thienstudyaws.online
-            API_URL=http://thienstudyaws.online/chat-app-api/rs/v1
+            FRONT_END_BASE_URL=${{ secrets.DOMAIN_URL }}
+            API_URL=${{ secrets.DOMAIN_URL }}/chat-app-api/rs/v1
             KEYCLOAK_URI=http://${{ secrets.EC2_PUBLIC_IP }}:8080
             EOT
 
